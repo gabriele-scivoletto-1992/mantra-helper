@@ -386,6 +386,25 @@
             background: #f87171;
         }
 
+        .team-select {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 4px 8px;
+            color: #e2e8f0;
+            font-size: 0.8rem;
+            min-width: 120px;
+            cursor: pointer;
+        }
+        .team-select:focus {
+            outline: none;
+            border-color: #059669;
+        }
+        .team-select option {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+
         @media (max-width: 768px) {
             .pitch-row {
                 gap: 4px;
@@ -461,8 +480,11 @@
                 <!-- quick buy panel -->
                 <div class="card p-4" id="buyPanel">
                     <div id="selectedPlayerDisplay" class="empty-state">Seleziona un giocatore</div>
-                    <div class="flex items-center gap-2 mt-2">
+                    <div class="flex items-center gap-2 mt-2 flex-wrap">
                         <input id="priceInput" type="number" placeholder="Prezzo" class="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
+                        <select id="teamSelect" class="team-select">
+                            <option value="MINE">La Mia Squadra</option>
+                        </select>
                         <button id="confirmBuyBtn" class="btn-emerald text-sm px-4 py-1" disabled><i class="fas fa-cart-plus mr-1"></i> Acquista</button>
                         <button id="clearSelectionBtn" class="text-slate-400 text-sm"><i class="fas fa-times"></i></button>
                     </div>
@@ -588,11 +610,10 @@
                     const { error: configCheck } = await supabaseClient.from('config').select('*').limit(1);
 
                     if (configCheck && configCheck.code === '42P01') {
-                        // Tables don't exist - create them using SQL via REST
                         console.log('📦 Creating database tables...');
 
                         // Create config table
-                        const { error: createConfig } = await supabaseClient.rpc('exec_sql', {
+                        await supabaseClient.rpc('exec_sql', {
                             sql: `
                                 CREATE TABLE IF NOT EXISTS config (
                                     id INTEGER PRIMARY KEY DEFAULT 1,
@@ -670,7 +691,6 @@
                     return;
                 }
 
-                // Check if tables exist
                 const tablesExist = await createTablesIfNotExist();
                 if (!tablesExist) {
                     console.warn('Tables not found - using defaults');
@@ -725,6 +745,9 @@
                         state.teams = dbTeams.map(t => ({ id: t.id, name: t.name, players: [] }));
                     }
 
+                    // Update team dropdown
+                    updateTeamDropdown();
+
                     // 4. Purchases with player details
                     const { data: dbPurchases, error: purchasesError } = await supabaseClient.from('purchases')
                         .select('*, players(*)');
@@ -766,6 +789,18 @@
                 state.isLoading = false;
             }
 
+            function updateTeamDropdown() {
+                const select = document.getElementById('teamSelect');
+                // Keep "La Mia Squadra" as first option
+                select.innerHTML = '<option value="MINE">La Mia Squadra</option>';
+                state.teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.id;
+                    option.textContent = team.name;
+                    select.appendChild(option);
+                });
+            }
+
             async function saveConfig() {
                 if (!state.supabaseAvailable || !supabaseClient || !state.tablesExist) return;
                 try {
@@ -788,7 +823,6 @@
                 }
 
                 try {
-                    // Clear existing data
                     await supabaseClient.from('purchases').delete().neq('id', 0);
                     await supabaseClient.from('players').delete().neq('id', 0);
 
@@ -937,6 +971,7 @@
             const searchResults = $('searchResults');
             const selectedPlayerDisplay = $('selectedPlayerDisplay');
             const priceInput = $('priceInput');
+            const teamSelect = $('teamSelect');
             const confirmBtn = $('confirmBuyBtn');
             const clearSelBtn = $('clearSelectionBtn');
             const purchaseFeed = $('purchaseFeed');
@@ -1033,7 +1068,6 @@
                             await supabaseClient.from('purchases').delete().eq('id', dbId);
                             await loadStateFromDB();
                         } else if (dbId) {
-                            // Offline mode - remove from local state
                             const idx = state.bought.findIndex(b => b.dbPurchaseId === dbId);
                             if (idx > -1) {
                                 state.bought.splice(idx, 1);
@@ -1221,7 +1255,6 @@
                                 await supabaseClient.from('teams').delete().eq('id', id);
                                 await loadStateFromDB();
                             } else {
-                                // Offline mode - remove from local state
                                 const idx = state.teams.findIndex(t => t.id === id);
                                 if (idx > -1) {
                                     state.teams.splice(idx, 1);
@@ -1239,7 +1272,6 @@
                             await supabaseClient.from('purchases').delete().eq('id', dbId);
                             await loadStateFromDB();
                         } else if (dbId) {
-                            // Offline mode - remove from local state
                             for (let team of state.teams) {
                                 const idx = team.players.findIndex(p => p.dbPurchaseId === dbId);
                                 if (idx > -1) {
@@ -1259,6 +1291,7 @@
                 renderPitch();
                 renderScouting();
                 renderTeams();
+                updateTeamDropdown();
 
                 if (state.selectedPlayerId) {
                     const p = getPlayer(state.selectedPlayerId);
@@ -1354,7 +1387,6 @@
                             await syncPlayersToDB(parsed);
                             await loadStateFromDB();
                         } else {
-                            // Offline mode - store locally
                             state.players = parsed;
                             state.bought = [];
                             state.teams = [];
@@ -1381,7 +1413,6 @@
                     if (error) return alert('Errore creazione squadra: ' + error.message);
                     state.teams.push({ id: data.id, name: data.name, players: [] });
                 } else {
-                    // Offline mode - create local team
                     state.teams.push({
                         id: Date.now(),
                         name: name,
@@ -1448,25 +1479,18 @@
                 if (price > maxBid()) return buyFeedback.textContent = `Supera il max bid (${maxBid()})`;
                 if (usedSlots() >= state.maxRoster) return buyFeedback.textContent = 'Roster pieno!';
 
-                let teamOptions = state.teams.map((t, i) => `${i+2}. ${t.name}`).join('\n');
-                let promptMsg = `Assegna a quale squadra?\n1. La mia squadra (${state.teamName})`;
-                if (teamOptions) promptMsg += `\n${teamOptions}`;
-                promptMsg += '\n\nInserisci il numero:';
-
-                const choice = prompt(promptMsg, '1');
-                if (choice === null) return buyFeedback.textContent = 'Acquisto annullato';
-
-                const choiceNum = parseInt(choice);
+                const selectedTeamValue = teamSelect.value;
                 let buyerType = 'MINE';
                 let teamId = null;
 
-                if (choiceNum === 1) {
+                if (selectedTeamValue === 'MINE') {
                     buyerType = 'MINE';
-                } else if (choiceNum >= 2 && choiceNum - 2 < state.teams.length) {
-                    buyerType = 'OTHER';
-                    teamId = state.teams[choiceNum - 2].id;
                 } else {
-                    return buyFeedback.textContent = 'Scelta non valida';
+                    buyerType = 'OTHER';
+                    teamId = parseInt(selectedTeamValue);
+                    if (!state.teams.find(t => t.id === teamId)) {
+                        return buyFeedback.textContent = 'Squadra non valida';
+                    }
                 }
 
                 if (state.supabaseAvailable && supabaseClient && state.tablesExist) {
@@ -1478,7 +1502,6 @@
                     }]);
                     if (error) return alert('Errore salvataggio acquisto: ' + error.message);
                 } else {
-                    // Offline mode - add locally
                     const playerObj = {
                         id: player.id,
                         name: player.name,
@@ -1513,6 +1536,8 @@
             teamInput.addEventListener('change', function() {
                 state.teamName = this.value || 'La Mia Squadra';
                 if (state.supabaseAvailable && state.tablesExist) saveConfig();
+                // Update dropdown label
+                document.querySelector('#teamSelect option[value="MINE"]').textContent = state.teamName;
             });
             minRoster.addEventListener('change', function() {
                 state.minRoster = Number(this.value) || 25;
@@ -1566,7 +1591,6 @@
                             event: '*',
                             schema: 'public',
                         }, () => {
-                            // Reload state on any database change
                             loadStateFromDB();
                         })
                         .subscribe();
