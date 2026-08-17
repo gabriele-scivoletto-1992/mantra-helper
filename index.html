@@ -1,25 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5" />
   <title>Fantacalcio Mantra · Auction Manager</title>
-  <!-- Tailwind + Lucide (light) -->
+  <!-- Tailwind + Font Awesome -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <!-- SheetJS for XLSX parsing -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <!-- SheetJS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    /* subtle dark theme overrides & custom scroll */
-    body { background: #0f172a; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    body { background: #0f172a; font-family: 'Inter', system-ui, sans-serif; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #1e293b; border-radius: 8px; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
-    .card { background: #1e293b; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); transition: all 0.15s ease; }
+    .card { background: #1e293b; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
     .card-hover:hover { background: #263348; }
     .pitch-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: #1a2a3a; padding: 16px; border-radius: 24px; border: 1px solid #334155; }
     .role-slot { min-height: 72px; background: #0f1a2a; border-radius: 14px; border: 1px dashed #334155; padding: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .player-card { background: #2d3b4f; border-radius: 12px; padding: 6px 8px; width: 100%; font-size: 0.75rem; border-left: 3px solid #3b82f6; transition: 0.1s; }
+    .player-card { background: #2d3b4f; border-radius: 12px; padding: 6px 8px; width: 100%; font-size: 0.75rem; border-left: 3px solid #3b82f6; }
     .player-card.multi { background: #3d3a1a; border-left-color: #fbbf24; border: 1px solid #fbbf24; }
     .badge-role { background: #1e293b; border-radius: 30px; padding: 2px 8px; font-size: 0.6rem; color: #94a3b8; }
     .kpi-value { font-weight: 700; color: #f1f5f9; }
@@ -38,6 +37,15 @@
     .feed-item .undo:hover { color: #ef4444; text-decoration: underline; }
     #dropzone { border: 2px dashed #334155; border-radius: 20px; padding: 12px; transition: 0.15s; }
     #dropzone.dragover { border-color: #3b82f6; background: #1e293b; }
+    .scouting-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .scouting-table th { text-align: left; padding: 6px 8px; color: #94a3b8; border-bottom: 1px solid #334155; }
+    .scouting-table td { padding: 4px 8px; border-bottom: 1px solid #1e293b; }
+    .scouting-table tr:hover { background: #263348; }
+    .tab-btn { background: transparent; border: none; color: #94a3b8; padding: 8px 16px; border-radius: 30px; font-weight: 500; cursor: pointer; transition: 0.1s; }
+    .tab-btn.active { background: #1e293b; color: #f1f5f9; }
+    .tab-btn:hover { color: #e2e8f0; }
+    .role-group { margin-bottom: 12px; }
+    .role-header { background: #1a2538; padding: 4px 12px; border-radius: 30px; display: inline-block; font-size: 0.7rem; font-weight: 600; color: #94a3b8; }
   </style>
 </head>
 <body class="text-slate-200 p-4 md:p-6 min-h-screen">
@@ -107,27 +115,43 @@
       </div>
     </div>
 
-    <!-- RIGHT: formations + pitch -->
+    <!-- RIGHT: formations + pitch + scouting -->
     <div class="lg:w-2/3 space-y-3">
-      <!-- formation tabs -->
-      <div class="flex flex-wrap gap-1" id="formationTabs">
-        <span class="formation-tab active" data-f="3-4-2-1">3-4-2-1</span>
-        <span class="formation-tab" data-f="3-4-1-2">3-4-1-2</span>
-        <span class="formation-tab" data-f="3-4-3">3-4-3</span>
-        <span class="formation-tab" data-f="3-5-2">3-5-2</span>
-        <span class="formation-tab" data-f="3-5-1-1">3-5-1-1</span>
-        <span class="formation-tab" data-f="4-3-3">4-3-3</span>
-        <span class="formation-tab" data-f="4-3-1-2">4-3-1-2</span>
-        <span class="formation-tab" data-f="4-2-3-1">4-2-3-1</span>
-        <span class="formation-tab" data-f="4-3-2-1">4-3-2-1</span>
-        <span class="formation-tab" data-f="4-1-4-1">4-1-4-1</span>
-        <span class="formation-tab" data-f="4-4-2">4-4-2</span>
-        <span class="formation-tab" data-f="4-4-1-1">4-4-1-1</span>
+      <!-- Tabs: Formazioni / Scouting -->
+      <div class="flex gap-1 border-b border-slate-700 pb-1">
+        <button class="tab-btn active" data-tab="formation">📋 Formazione</button>
+        <button class="tab-btn" data-tab="scouting">🔍 Scouting (FVM)</button>
       </div>
-      <!-- pitch + coverage -->
-      <div class="card p-3">
-        <div class="flex justify-between items-center mb-2"><span id="formationLabel" class="font-semibold">3-4-2-1</span><span id="coverageLabel" class="text-xs bg-slate-800 px-3 py-1 rounded-full">0% coperto</span></div>
-        <div id="pitchContainer" class="pitch-grid"></div>
+
+      <!-- FORMATION TAB -->
+      <div id="formationTab" class="space-y-3">
+        <div class="flex flex-wrap gap-1" id="formationTabs">
+          <span class="formation-tab active" data-f="3-4-2-1">3-4-2-1</span>
+          <span class="formation-tab" data-f="3-4-1-2">3-4-1-2</span>
+          <span class="formation-tab" data-f="3-4-3">3-4-3</span>
+          <span class="formation-tab" data-f="3-5-2">3-5-2</span>
+          <span class="formation-tab" data-f="3-5-1-1">3-5-1-1</span>
+          <span class="formation-tab" data-f="4-3-3">4-3-3</span>
+          <span class="formation-tab" data-f="4-3-1-2">4-3-1-2</span>
+          <span class="formation-tab" data-f="4-2-3-1">4-2-3-1</span>
+          <span class="formation-tab" data-f="4-3-2-1">4-3-2-1</span>
+          <span class="formation-tab" data-f="4-1-4-1">4-1-4-1</span>
+          <span class="formation-tab" data-f="4-4-2">4-4-2</span>
+          <span class="formation-tab" data-f="4-4-1-1">4-4-1-1</span>
+        </div>
+        <div class="card p-3">
+          <div class="flex justify-between items-center mb-2"><span id="formationLabel" class="font-semibold">3-4-2-1</span><span id="coverageLabel" class="text-xs bg-slate-800 px-3 py-1 rounded-full">0% coperto</span></div>
+          <div id="pitchContainer" class="pitch-grid"></div>
+        </div>
+      </div>
+
+      <!-- SCOUTING TAB -->
+      <div id="scoutingTab" class="hidden card p-3 max-h-[500px] overflow-y-auto">
+        <div class="flex justify-between items-center mb-2">
+          <span class="font-semibold">📊 Giocatori per ruolo · ordinati per FVM ↓</span>
+          <span class="text-xs text-slate-400" id="scoutingCount">0 giocatori</span>
+        </div>
+        <div id="scoutingContainer"></div>
       </div>
     </div>
   </div>
@@ -138,7 +162,7 @@
     // ----- STATE -----
     const state = {
       players: [],          // parsed from xlsx
-      bought: [],           // { id, name, team, roles, price, baseQuote, percentage }
+      bought: [],           // { id, name, team, roles, price, baseQuote, fvm, percentage }
       formation: '3-4-2-1',
       selectedPlayerId: null,
       budget: 500,
@@ -147,7 +171,7 @@
       maxRoster: 30,
     };
 
-    // formation map: role -> number of slots
+    // formation map
     const FORMATIONS = {
       '3-4-2-1': { Por:1, Dd:1, Ds:1, Dc:1, C:2, T:1, W:1, A:1, Pc:1 },
       '3-4-1-2': { Por:1, Dd:1, Ds:1, Dc:1, C:2, T:1, A:2, Pc:0 },
@@ -191,29 +215,23 @@
     const minRoster = $('minRoster');
     const maxRoster = $('maxRoster');
     const buyFeedback = $('buyFeedback');
+    const scoutingContainer = $('scoutingContainer');
+    const scoutingCount = $('scoutingCount');
+    const formationTab = $('formationTab');
+    const scoutingTab = $('scoutingTab');
 
     // ----- HELPERS -----
     function parseRoles(rmStr) {
       if (!rmStr) return [];
       return rmStr.split(/[;,]/).map(s => s.trim()).filter(Boolean);
     }
-
-    // find player by id
     function getPlayer(id) { return state.players.find(p => p.id === id); }
-
-    // compute bought set
     function boughtIds() { return new Set(state.bought.map(b => b.id)); }
-
-    // remaining budget
     function remainingBudget() {
       const spent = state.bought.reduce((sum, b) => sum + b.price, 0);
       return state.budget - spent;
     }
-
-    // slots used
     function usedSlots() { return state.bought.length; }
-
-    // max bid
     function maxBid() {
       const remain = remainingBudget();
       const slots = usedSlots();
@@ -222,7 +240,7 @@
       return Math.max(0, remain - leftSlots);
     }
 
-    // update KPI
+    // ----- RENDER FUNCTIONS -----
     function updateKPIs() {
       const remain = remainingBudget();
       const spent = state.budget - remain;
@@ -233,14 +251,11 @@
       kpiSpent.textContent = pct + '%';
       kpiSlots.textContent = `${used}/${maxSlots}`;
       kpiMaxBid.textContent = maxBid();
-      // jolly count (multi-role bought)
       const jolly = state.bought.filter(b => b.roles && b.roles.length > 1).length;
       jollyCount.textContent = jolly;
-      // update buy button
       confirmBtn.disabled = !state.selectedPlayerId || !priceInput.value || Number(priceInput.value) > maxBid() || Number(priceInput.value) <= 0;
     }
 
-    // render feed
     function renderFeed() {
       purchaseFeed.innerHTML = state.bought.map((b, idx) => `
         <div class="feed-item flex justify-between items-center">
@@ -260,17 +275,13 @@
       });
     }
 
-    // render pitch
     function renderPitch() {
       const formation = state.formation;
       const slots = FORMATIONS[formation];
       if (!slots) return;
       const roleKeys = Object.keys(slots);
-      // build a grid: 4 cols
       let html = '';
-      // get bought players with roles
       const boughtWithRoles = state.bought.filter(b => b.roles && b.roles.length > 0);
-      // for each role, find players covering it
       roleKeys.forEach(role => {
         const count = slots[role] || 0;
         const playersForRole = boughtWithRoles.filter(b => b.roles.includes(role));
@@ -295,7 +306,6 @@
         html += `</div>`;
       });
       pitchContainer.innerHTML = html;
-      // coverage
       const totalSlots = roleKeys.reduce((acc, r) => acc + (slots[r]||0), 0);
       const filled = roleKeys.reduce((acc, r) => {
         const count = slots[r]||0;
@@ -307,12 +317,46 @@
       formationLabel.textContent = formation;
     }
 
-    // full render
+    function renderScouting() {
+      // group by role, sort by FVM desc (use baseQuote as FVM if no explicit FVM field)
+      const boughtSet = boughtIds();
+      const available = state.players.filter(p => !boughtSet.has(p.id) && p.roles && p.roles.length > 0);
+      // Build role map
+      const roleMap = {};
+      available.forEach(p => {
+        p.roles.forEach(role => {
+          if (!roleMap[role]) roleMap[role] = [];
+          roleMap[role].push(p);
+        });
+      });
+      // Sort each role list by FVM (baseQuote) descending
+      Object.keys(roleMap).forEach(role => {
+        roleMap[role].sort((a, b) => (b.fvm || b.baseQuote || 0) - (a.fvm || a.baseQuote || 0));
+      });
+      // Render
+      let html = '';
+      const sortedRoles = Object.keys(roleMap).sort();
+      sortedRoles.forEach(role => {
+        const players = roleMap[role];
+        html += `<div class="role-group"><span class="role-header">${role} (${players.length})</span>
+          <table class="scouting-table">
+            <thead><tr><th>Nome</th><th>Squadra</th><th>FVM</th><th>Ruoli</th></tr></thead>
+            <tbody>`;
+        players.slice(0, 15).forEach(p => {
+          html += `<tr><td>${p.name}</td><td>${p.team}</td><td>${p.fvm || p.baseQuote || '-'}</td><td class="text-xs text-slate-400">${p.roles.join('/')}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+      });
+      scoutingContainer.innerHTML = html || '<div class="empty-state">Nessun giocatore disponibile</div>';
+      scoutingCount.textContent = available.length + ' giocatori';
+    }
+
     function renderAll() {
       updateKPIs();
       renderFeed();
       renderPitch();
-      // update selected player display
+      renderScouting();
+      // selected player display
       if (state.selectedPlayerId) {
         const p = getPlayer(state.selectedPlayerId);
         if (p && !boughtIds().has(p.id)) {
@@ -328,11 +372,10 @@
         selectedPlayerDisplay.innerHTML = `<div class="empty-state">Seleziona un giocatore</div>`;
         confirmBtn.disabled = true;
       }
-      // update search results if search active
       if (searchInput.value.length > 0) performSearch(searchInput.value);
     }
 
-    // search
+    // ----- SEARCH -----
     function performSearch(query) {
       if (!query.trim()) { searchResults.innerHTML = ''; return; }
       const q = query.toLowerCase();
@@ -355,7 +398,7 @@
       });
     }
 
-    // XLSX parser
+    // ----- XLSX PARSER (with FVM) -----
     function parseXLSX(data) {
       try {
         const workbook = XLSX.read(data, { type: 'array' });
@@ -363,12 +406,13 @@
         if (!sheet) return [];
         const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
         if (json.length < 2) return [];
-        const headers = json[1]; // row2
+        const headers = json[1];
         const idIdx = headers.indexOf('Id');
         const nameIdx = headers.indexOf('Nome');
         const teamIdx = headers.indexOf('Squadra');
         const rmIdx = headers.indexOf('RM');
         const qtIdx = headers.indexOf('Qt.A M') > -1 ? headers.indexOf('Qt.A M') : (headers.indexOf('Qt.I M') > -1 ? headers.indexOf('Qt.I M') : headers.indexOf('FVM M'));
+        const fvmIdx = headers.indexOf('FVM M') > -1 ? headers.indexOf('FVM M') : (headers.indexOf('FVM') > -1 ? headers.indexOf('FVM') : -1);
         if (idIdx === -1 || nameIdx === -1 || teamIdx === -1 || rmIdx === -1 || qtIdx === -1) {
           alert('Colonne non trovate: verifica header (Id, Nome, Squadra, RM, Qt.A M)');
           return [];
@@ -382,16 +426,17 @@
           const team = String(row[teamIdx] || '').trim();
           const rm = String(row[rmIdx] || '').trim();
           const baseQuote = parseFloat(row[qtIdx]) || 1;
+          const fvm = fvmIdx > -1 ? parseFloat(row[fvmIdx]) || baseQuote : baseQuote;
           if (!name || !team) continue;
           const roles = parseRoles(rm);
           if (roles.length === 0) continue;
-          players.push({ id, name, team, roles, baseQuote });
+          players.push({ id, name, team, roles, baseQuote, fvm });
         }
         return players;
       } catch(e) { alert('Errore parse XLSX: '+e.message); return []; }
     }
 
-    // load file
+    // ----- LOAD FILE -----
     function loadFile(file) {
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -422,7 +467,7 @@
     });
     dropzone.addEventListener('click', () => fileInput.click());
 
-    // formation tabs
+    // Formation tabs
     formationTabs.addEventListener('click', function(e) {
       const tab = e.target.closest('.formation-tab');
       if (!tab) return;
@@ -432,16 +477,33 @@
       renderAll();
     });
 
-    // search
+    // Main tabs (Formazione / Scouting)
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const tab = this.dataset.tab;
+        if (tab === 'formation') {
+          formationTab.classList.remove('hidden');
+          scoutingTab.classList.add('hidden');
+        } else {
+          formationTab.classList.add('hidden');
+          scoutingTab.classList.remove('hidden');
+          renderScouting(); // refresh
+        }
+      });
+    });
+
+    // Search
     searchInput.addEventListener('input', function() { performSearch(this.value); });
 
-    // clear selection
+    // Clear selection
     clearSelBtn.addEventListener('click', function() {
       state.selectedPlayerId = null;
       renderAll();
     });
 
-    // confirm buy
+    // Confirm buy
     confirmBtn.addEventListener('click', function() {
       const id = state.selectedPlayerId;
       if (!id) return;
@@ -459,6 +521,7 @@
         roles: [...player.roles],
         price: price,
         baseQuote: player.baseQuote,
+        fvm: player.fvm || player.baseQuote,
         percentage: state.budget ? Math.round((price/state.budget)*100) : 0
       });
       state.selectedPlayerId = null;
@@ -466,7 +529,7 @@
       renderAll();
     });
 
-    // budget, team, roster limits
+    // Budget, roster
     budgetInput.addEventListener('change', function() {
       state.budget = Number(this.value) || 500;
       renderAll();
@@ -485,21 +548,22 @@
       renderAll();
     });
 
-    // panic: free agent view (alert with list)
+    // Panic: free agent
     panicBtn.addEventListener('click', function() {
       const boughtSet = boughtIds();
       const free = state.players.filter(p => !boughtSet.has(p.id));
       if (!free.length) { alert('Nessun free agent disponibile.'); return; }
-      const msg = free.slice(0, 20).map(p => `${p.name} (${p.team}) [${p.roles.join('/')}] base ${p.baseQuote}`).join('\n');
-      alert('Free agent (max 20):\n'+msg);
+      const sorted = [...free].sort((a,b) => (b.fvm || b.baseQuote) - (a.fvm || a.baseQuote));
+      const msg = sorted.slice(0, 25).map(p => `${p.name} (${p.team}) [${p.roles.join('/')}] FVM ${p.fvm || p.baseQuote}`).join('\n');
+      alert('Free agent (top 25 per FVM):\n'+msg);
     });
 
-    // export CSV
+    // Export CSV
     exportBtn.addEventListener('click', function() {
       if (!state.bought.length) { alert('Nessun acquisto da esportare.'); return; }
-      let csv = 'Nome,Squadra,Prezzo,Percentuale,ID\n';
+      let csv = 'Nome,Squadra,Prezzo,FVM,Percentuale,ID\n';
       state.bought.forEach(b => {
-        csv += `${b.name},${b.team},${b.price},${b.percentage || 0},${b.id}\n`;
+        csv += `${b.name},${b.team},${b.price},${b.fvm || b.baseQuote},${b.percentage || 0},${b.id}\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -508,7 +572,7 @@
       URL.revokeObjectURL(url);
     });
 
-    // init
+    // Init
     renderAll();
   })();
 </script>
