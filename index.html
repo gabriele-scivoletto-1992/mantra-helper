@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5" />
-    <title>Fantacalcio Mantra · Auction Manager</title>
+    <title>Mantra Asta Manager</title>
     <!-- Tailwind + Font Awesome -->
     <script src="https://cdn.tailwindcss.com">
     </script>
@@ -687,7 +687,7 @@
         <header class="card p-4 mb-4 flex flex-wrap items-center gap-3 justify-between">
             <div class="flex items-center gap-2 flex-wrap">
                 <i class="fas fa-futbol text-emerald-400 text-xl"></i>
-                <span class="font-bold text-lg">Mantra Auction</span>
+                <span class="font-bold text-lg">Mantra Asta Manager</span>
                 <div id="dropzone" class="text-xs flex items-center gap-2 cursor-pointer bg-slate-800 px-3 py-1 rounded-full">
                     <i class="fas fa-file-upload text-emerald-400"></i>
                     <span id="fileLabel">Carica XLSX</span>
@@ -855,115 +855,115 @@
             const FORMATIONS = {
                 '3-4-3': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
-                        { roles: ['E', 'C', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['W', 'Pc', 'A'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF' },
+                        { roles: ['E', 'M/C', 'C', 'E'], label: 'MID' },
+                        { roles: ['W/A', 'A/PC', 'W/A'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dc', 'E', 'C', 'W', 'Pc', 'A']
+                    allRoles: ['P', 'DC', 'DC/B', 'E', 'M/C', 'C', 'W/A', 'A/PC']
                 },
                 '3-4-1-2': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
-                        { roles: ['E', 'C', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['T'], label: 'TQ', alternatives: {} },
-                        { roles: ['A', 'A'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF' },
+                        { roles: ['E', 'M/C', 'C', 'E'], label: 'MID' },
+                        { roles: ['T'], label: 'TQ' },
+                        { roles: ['A/PC', 'A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dc', 'E', 'C', 'T', 'A']
+                    allRoles: ['P', 'DC', 'DC/B', 'E', 'M/C', 'C', 'T', 'A/PC']
                 },
                 '3-4-2-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
-                        { roles: ['M', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['E'], label: 'WING', alternatives: {} },
-                        { roles: ['T', 'A'], label: 'TQ', alternatives: {} },
-                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF' },
+                        { roles: ['M', 'M/C', 'E'], label: 'MID' },
+                        { roles: ['E/W'], label: 'WING' },
+                        { roles: ['T', 'T/A'], label: 'TQ' },
+                        { roles: ['A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dc', 'M', 'C', 'E', 'T', 'A', 'Pc']
+                    allRoles: ['P', 'DC', 'DC/B', 'M', 'M/C', 'E', 'E/W', 'T', 'T/A', 'A/PC']
                 },
                 '3-5-2': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
-                        { roles: ['M', 'C', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['E'], label: 'WING', alternatives: {} },
-                        { roles: ['A', 'A'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF' },
+                        { roles: ['M', 'M/C', 'C', 'E'], label: 'MID' },
+                        { roles: ['E/W'], label: 'WING' },
+                        { roles: ['A/PC', 'A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dc', 'M', 'C', 'E', 'A']
+                    allRoles: ['P', 'DC', 'DC/B', 'M', 'M/C', 'C', 'E', 'E/W', 'A/PC']
                 },
                 '3-5-1-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
-                        { roles: ['M', 'M', 'C'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['E', 'E'], label: 'WING', alternatives: {} },
-                        { roles: ['A'], label: 'TQ', alternatives: {} },
-                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF' },
+                        { roles: ['M', 'M', 'C'], label: 'MID' },
+                        { roles: ['E/W', 'E/W'], label: 'WING' },
+                        { roles: ['T/A'], label: 'TQ' },
+                        { roles: ['A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dc', 'M', 'C', 'E', 'A', 'Pc']
+                    allRoles: ['P', 'DC', 'DC/B', 'M', 'C', 'E/W', 'T/A', 'A/PC']
                 },
                 '4-3-3': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
-                        { roles: ['C', 'M', 'C'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['W', 'Pc', 'A'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF' },
+                        { roles: ['M/C', 'M', 'C'], label: 'MID' },
+                        { roles: ['W/A', 'A/PC', 'W/A'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'C', 'M', 'W', 'Pc', 'A']
+                    allRoles: ['P', 'DD', 'DC', 'DS', 'M/C', 'M', 'C', 'W/A', 'A/PC']
                 },
                 '4-3-1-2': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
-                        { roles: ['C', 'M', 'C'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['T'], label: 'TQ', alternatives: {} },
-                        { roles: ['A', 'A'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF' },
+                        { roles: ['M/C', 'M', 'C'], label: 'MID' },
+                        { roles: ['T'], label: 'TQ' },
+                        { roles: ['T/A/PC', 'A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'C', 'M', 'T', 'A']
+                    allRoles: ['P', 'DD', 'DC', 'DS', 'M/C', 'M', 'C', 'T', 'T/A/PC', 'A/PC']
                 },
                 '4-4-2': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
-                        { roles: ['C', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['E'], label: 'WING', alternatives: {} },
-                        { roles: ['A', 'Pc'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF' },
+                        { roles: ['M/C', 'C', 'E'], label: 'MID' },
+                        { roles: ['E/W'], label: 'WING' },
+                        { roles: ['A/PC', 'A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'C', 'E', 'A', 'Pc']
+                    allRoles: ['P', 'DD', 'DC', 'DS', 'M/C', 'C', 'E', 'E/W', 'A/PC']
                 },
                 '4-1-4-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
-                        { roles: ['M'], label: 'CDM', alternatives: {} },
-                        { roles: ['C', 'T'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['E', 'W'], label: 'WING', alternatives: {} },
-                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF' },
+                        { roles: ['M'], label: 'CDM' },
+                        { roles: ['C/T', 'T'], label: 'MID' },
+                        { roles: ['E/W', 'W'], label: 'WING' },
+                        { roles: ['A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'M', 'C', 'T', 'E', 'W', 'Pc']
+                    allRoles: ['P', 'DD', 'DC', 'DS', 'M', 'C/T', 'T', 'E/W', 'W', 'A/PC']
                 },
                 '4-4-1-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
-                        { roles: ['M', 'C'], label: 'MID', alternatives: { 'C': ['C'] } },
-                        { roles: ['E', 'E'], label: 'WING', alternatives: {} },
-                        { roles: ['A'], label: 'TQ', alternatives: {} },
-                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF' },
+                        { roles: ['M', 'C'], label: 'MID' },
+                        { roles: ['E/W', 'E/W'], label: 'WING' },
+                        { roles: ['T/A'], label: 'TQ' },
+                        { roles: ['A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'M', 'C', 'E', 'A', 'Pc']
+                    allRoles: ['P', 'DD', 'DC', 'DS', 'M', 'C', 'E/W', 'T/A', 'A/PC']
                 },
                 '4-2-3-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK', alternatives: {} },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
-                        { roles: ['M', 'C'], label: 'CDM', alternatives: { 'C': ['C'] } },
-                        { roles: ['W', 'T', 'A'], label: 'TQ/W', alternatives: {} },
-                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                        { roles: ['P'], label: 'GK' },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF' },
+                        { roles: ['M', 'M/C'], label: 'CDM' },
+                        { roles: ['W/T', 'T', 'W/A'], label: 'TQ/W' },
+                        { roles: ['A/PC'], label: 'ATT' }
                     ],
-                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'M', 'C', 'W', 'T', 'A', 'Pc']
+                    allRoles: ['P', 'DD', 'DC', 'DS', 'M', 'M/C', 'W/T', 'T', 'W/A', 'A/PC']
                 }
             };
 
@@ -1319,28 +1319,33 @@
             function playerMatchesRole(player, roleStr) {
                 if (!player || !player.roles) return false;
 
-                // Case-insensitive matching
+                // Handle slash alternatives (e.g., "M/C" matches "M" or "C")
+                if (roleStr.includes('/')) {
+                    const alternatives = roleStr.split('/');
+                    const playerRolesLower = player.roles.map(r => r.toLowerCase());
+                    return alternatives.some(alt => playerRolesLower.includes(alt.toLowerCase()));
+                }
+
+                // Case-insensitive matching for single role
                 const roleLower = roleStr.toLowerCase();
                 return player.roles.some(r => r.toLowerCase() === roleLower);
             }
 
             function playerMatchesAnyRole(player, roleArray) {
                 if (!player || !player.roles) return false;
-                const roleLower = player.roles.map(r => r.toLowerCase());
-                return roleArray.some(r => roleLower.includes(r.toLowerCase()));
+                return roleArray.some(role => playerMatchesRole(player, role));
             }
 
             function getRoleIcon(role) {
-                const gkRoles = ['Por', 'P'];
-                const defRoles = ['Dd', 'Ds', 'Dc', 'B'];
-                const midRoles = ['C', 'M', 'E', 'T'];
-                const attRoles = ['W', 'A', 'Pc'];
+                const gkRoles = ['P', 'Por'];
+                const defRoles = ['DD', 'DS', 'DC', 'Dc', 'DC/B', 'B'];
+                const midRoles = ['C', 'M', 'E', 'T', 'M/C', 'C/T', 'T/A', 'T/A/PC'];
+                const attRoles = ['W', 'A', 'PC', 'W/A', 'A/PC', 'E/W', 'W/T'];
 
-                if (gkRoles.some(r => r.toLowerCase() === role.toLowerCase())) return { icon: 'fa-shield-halved',
-                cls: 'gk' };
-                if (defRoles.some(r => r.toLowerCase() === role.toLowerCase())) return { icon: 'fa-shield', cls: 'def' };
-                if (midRoles.some(r => r.toLowerCase() === role.toLowerCase())) return { icon: 'fa-futbol', cls: 'mid' };
-                if (attRoles.some(r => r.toLowerCase() === role.toLowerCase())) return { icon: 'fa-bullseye', cls: 'att' };
+                if (gkRoles.some(r => r === role)) return { icon: 'fa-shield-halved', cls: 'gk' };
+                if (defRoles.some(r => r === role)) return { icon: 'fa-shield', cls: 'def' };
+                if (midRoles.some(r => r === role)) return { icon: 'fa-futbol', cls: 'mid' };
+                if (attRoles.some(r => r === role)) return { icon: 'fa-bullseye', cls: 'att' };
                 return { icon: 'fa-circle', cls: 'mid' };
             }
 
@@ -1413,15 +1418,20 @@
                         const isCritical = rowIndex > 0 && !hasPlayer && usedSlots() / state.maxRoster > 0.6;
 
                         let roleCategory = '';
-                        if (['Por', 'P'].includes(roleStr)) roleCategory = 'goalkeeper';
-                        else if (['Dd', 'Ds', 'Dc', 'B'].includes(roleStr)) roleCategory = 'defense';
-                        else if (['C', 'M', 'E', 'T'].includes(roleStr)) roleCategory = 'midfield';
-                        else if (['W', 'A', 'Pc'].includes(roleStr)) roleCategory = 'attack';
+                        const roleLower = roleStr.toLowerCase();
+                        if (['P', 'Por'].some(r => r.toLowerCase() === roleLower)) roleCategory = 'goalkeeper';
+                        else if (['DD', 'DS', 'DC', 'DC/B', 'B', 'Dc'].some(r => r.toLowerCase() === roleLower))
+                            roleCategory = 'defense';
+                        else if (['C', 'M', 'E', 'T', 'M/C', 'C/T', 'T/A', 'T/A/PC'].some(r => r.toLowerCase() ===
+                                roleLower)) roleCategory = 'midfield';
+                        else if (['W', 'A', 'PC', 'W/A', 'A/PC', 'E/W', 'W/T'].some(r => r.toLowerCase() ===
+                                roleLower)) roleCategory = 'attack';
 
                         let playersHtml = '';
                         if (playersForRole.length > 0) {
                             playersForRole.forEach(player => {
                                 const isMulti = player.roles.length > 1;
+                                // Show roles that are not the current role (case insensitive)
                                 const altRoles = player.roles.filter(r => r.toLowerCase() !== roleStr
                                     .toLowerCase()).join('+');
                                 playersHtml += `
@@ -1513,9 +1523,9 @@
                 });
 
                 const sortedRoles = Object.keys(roleMap).sort((a, b) => {
-                    const gkRoles = ['Por', 'P'];
-                    const aIsGK = gkRoles.some(r => r.toLowerCase() === a.toLowerCase());
-                    const bIsGK = gkRoles.some(r => r.toLowerCase() === b.toLowerCase());
+                    const gkRoles = ['P', 'Por'];
+                    const aIsGK = gkRoles.some(r => r === a);
+                    const bIsGK = gkRoles.some(r => r === b);
                     if (aIsGK && !bIsGK) return -1;
                     if (!aIsGK && bIsGK) return 1;
                     return a.localeCompare(b);
