@@ -117,6 +117,10 @@
             padding: 6px 8px;
             color: #94a3b8;
             border-bottom: 1px solid #334155;
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         .scouting-table td {
             padding: 4px 8px;
@@ -124,6 +128,14 @@
         }
         .scouting-table tr:hover {
             background: #263348;
+        }
+        .scouting-table .quote-value {
+            color: #34d399;
+            font-weight: 500;
+        }
+        .scouting-table .fvm-value {
+            color: #60a5fa;
+            font-weight: 500;
         }
         .tab-btn {
             background: transparent;
@@ -819,11 +831,26 @@
                     const players = roleMap[role];
                     html += `<div class="role-group"><span class="role-header">${role} (${players.length})</span>
                             <table class="scouting-table">
-                                <thead><tr><th>Nome</th><th>Squadra</th><th>FVM</th><th>Ruoli</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Squadra</th>
+                                        <th>Ruoli</th>
+                                        <th>Quotazione</th>
+                                        <th>FVM</th>
+                                    </tr>
+                                </thead>
                                 <tbody>`;
                     players.slice(0, 15).forEach(p => {
-                        html +=
-                            `<tr><td>${p.name}</td><td>${p.team}</td><td>${p.fvm || p.baseQuote || '-'}</td><td class="text-xs text-slate-400">${p.roles.join('/')}</td></tr>`;
+                        html += `
+                                <tr>
+                                    <td>${p.name}</td>
+                                    <td>${p.team}</td>
+                                    <td class="text-xs text-slate-400">${p.roles.join('/')}</td>
+                                    <td class="quote-value">${p.baseQuote || '-'}</td>
+                                    <td class="fvm-value">${p.fvm || p.baseQuote || '-'}</td>
+                                </tr>
+                            `;
                     });
                     html += `</tbody></table></div>`;
                 });
