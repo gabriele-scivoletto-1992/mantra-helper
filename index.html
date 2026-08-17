@@ -72,6 +72,24 @@
             background: #ef4444;
             color: white;
         }
+        .btn-save {
+            background: #3b82f6;
+            color: white;
+            border-radius: 40px;
+            padding: 4px 14px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: 0.15s;
+        }
+        .btn-save:hover {
+            background: #2563eb;
+            transform: scale(0.97);
+        }
+        .btn-save:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
         .empty-state {
             color: #475569;
             text-align: center;
@@ -536,6 +554,20 @@
             color: #475569;
         }
 
+        .team-budget-edit {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 2px 6px;
+            color: #e2e8f0;
+            font-size: 0.75rem;
+            width: 60px;
+        }
+        .team-budget-edit:focus {
+            outline: none;
+            border-color: #059669;
+        }
+
         @media (max-width: 768px) {
             .pitch-row {
                 gap: 4px;
@@ -591,6 +623,7 @@
                 <div><span class="kpi-label">Budget</span> <input id="budgetInput" type="number" value="500" class="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"></div>
                 <div><span class="kpi-label">Team</span> <input id="teamInput" value="La Mia Squadra" class="w-32 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"></div>
                 <div><span class="kpi-label">Min/Max</span> <input id="minRoster" type="number" value="25" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-white"> / <input id="maxRoster" type="number" value="30" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-white"></div>
+                <button id="saveConfigBtn" class="btn-save"><i class="fas fa-save mr-1"></i> Salva Config</button>
             </div>
         </header>
 
@@ -940,6 +973,49 @@
                 });
             }
 
+            async function saveConfigToDB() {
+                if (!state.supabaseAvailable || !supabaseClient || !state.tablesExist) {
+                    alert('Supabase non disponibile');
+                    return;
+                }
+
+                try {
+                    // Update config
+                    const { error: configError } = await supabaseClient.from('config').update({
+                        budget: state.budget,
+                        team_name: state.teamName,
+                        min_roster: state.minRoster,
+                        max_roster: state.maxRoster,
+                        formation: state.formation
+                    }).eq('id', 1);
+
+                    if (configError) {
+                        console.error('Config update error:', configError);
+                        alert('Errore salvataggio config: ' + configError.message);
+                        return;
+                    }
+
+                    // Update each team's budget
+                    for (const team of state.teams) {
+                        const { error: teamError } = await supabaseClient.from('teams')
+                            .update({ budget: team.budget })
+                            .eq('id', team.id);
+
+                        if (teamError) {
+                            console.error(`Team ${team.name} update error:`, teamError);
+                            alert(`Errore aggiornamento budget per ${team.name}: ${teamError.message}`);
+                            return;
+                        }
+                    }
+
+                    alert('✅ Configurazione salvata con successo!');
+                    updateSyncStatus(true, 'Saved');
+                } catch (err) {
+                    console.error('Save config error:', err);
+                    alert('Errore salvataggio: ' + err.message);
+                }
+            }
+
             async function saveConfig() {
                 if (!state.supabaseAvailable || !supabaseClient || !state.tablesExist) return;
                 try {
@@ -1138,6 +1214,7 @@
             const newTeamName = $('newTeamName');
             const newTeamBudget = $('newTeamBudget');
             const addTeamBtn = $('addTeamBtn');
+            const saveConfigBtn = $('saveConfigBtn');
 
             // ----- HELPERS -----
             function parseRoles(rmStr) {
@@ -1424,7 +1501,11 @@
                                         <span class="text-xs text-emerald-400 ml-2">Speso: ${totalSpent} / ${team.budget || 500} (${pctUsed}%)</span>
                                         <span class="text-xs ${remaining >= 0 ? 'text-emerald-400' : 'text-red-400'} ml-2">Rimasti: ${remaining}</span>
                                     </div>
-                                    <button class="btn-danger text-xs delete-team" data-id="${team.id}" data-name="${team.name}"><i class="fas fa-trash"></i> Elimina</button>
+                                    <div class="flex items-center gap-2">
+                                        <input type="number" class="team-budget-edit" data-team-id="${team.id}" value="${team.budget || 500}" min="1" step="1">
+                                        <button class="btn-save text-xs update-team-budget" data-team-id="${team.id}"><i class="fas fa-save"></i></button>
+                                        <button class="btn-danger text-xs delete-team" data-id="${team.id}" data-name="${team.name}"><i class="fas fa-trash"></i></button>
+                                    </div>
                                 </div>
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-1 max-h-40 overflow-y-auto">
                                     ${team.players.map(p => `
@@ -1440,6 +1521,45 @@
                     });
                 }
                 teamsContainer.innerHTML = html;
+
+                // Update team budget handlers
+                document.querySelectorAll('.update-team-budget').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const teamId = parseInt(this.dataset.teamId);
+                        const input = document.querySelector(`.team-budget-edit[data-team-id="${teamId}"]`);
+                        const newBudget = parseInt(input.value);
+
+                        if (!newBudget || newBudget <= 0) {
+                            alert('Il budget deve essere maggiore di 0');
+                            return;
+                        }
+
+                        const team = state.teams.find(t => t.id === teamId);
+                        if (!team) return;
+
+                        // Check if new budget is less than current spending
+                        const totalSpent = team.players.reduce((sum, p) => sum + p.price, 0);
+                        if (newBudget < totalSpent) {
+                            alert(`Il budget non può essere inferiore alla spesa corrente (${totalSpent})`);
+                            return;
+                        }
+
+                        team.budget = newBudget;
+
+                        if (state.supabaseAvailable && supabaseClient && state.tablesExist) {
+                            const { error } = await supabaseClient.from('teams')
+                                .update({ budget: newBudget })
+                                .eq('id', teamId);
+                            if (error) {
+                                alert('Errore aggiornamento budget: ' + error.message);
+                                return;
+                            }
+                        }
+
+                        renderAll();
+                        updateSyncStatus(true, 'Budget aggiornato');
+                    });
+                });
 
                 document.querySelectorAll('.delete-team').forEach(btn => {
                     btn.addEventListener('click', async function() {
@@ -1661,6 +1781,9 @@
                 });
             });
 
+            // Save config button
+            saveConfigBtn.addEventListener('click', saveConfigToDB);
+
             // Scouting search
             scoutingSearch.addEventListener('input', function() {
                 state.scoutingFilter = this.value;
@@ -1742,24 +1865,21 @@
 
             budgetInput.addEventListener('change', function() {
                 state.budget = Number(this.value) || 500;
-                if (state.supabaseAvailable && state.tablesExist) saveConfig();
                 renderAll();
             });
             teamInput.addEventListener('change', function() {
                 state.teamName = this.value || 'La Mia Squadra';
-                if (state.supabaseAvailable && state.tablesExist) saveConfig();
                 document.querySelector('#teamSelect option[value="MINE"]').textContent = state.teamName;
+                renderAll();
             });
             minRoster.addEventListener('change', function() {
                 state.minRoster = Number(this.value) || 25;
                 if (state.minRoster > state.maxRoster) state.maxRoster = state.minRoster;
-                if (state.supabaseAvailable && state.tablesExist) saveConfig();
                 renderAll();
             });
             maxRoster.addEventListener('change', function() {
                 state.maxRoster = Number(this.value) || 30;
                 if (state.maxRoster < state.minRoster) state.minRoster = state.maxRoster;
-                if (state.supabaseAvailable && state.tablesExist) saveConfig();
                 renderAll();
             });
 
