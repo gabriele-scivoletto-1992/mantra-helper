@@ -1,579 +1,983 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5" />
-  <title>Fantacalcio Mantra · Auction Manager</title>
-  <!-- Tailwind + Font Awesome -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-  <!-- SheetJS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    body { background: #0f172a; font-family: 'Inter', system-ui, sans-serif; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #1e293b; border-radius: 8px; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
-    .card { background: #1e293b; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
-    .card-hover:hover { background: #263348; }
-    .pitch-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: #1a2a3a; padding: 16px; border-radius: 24px; border: 1px solid #334155; }
-    .role-slot { min-height: 72px; background: #0f1a2a; border-radius: 14px; border: 1px dashed #334155; padding: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .player-card { background: #2d3b4f; border-radius: 12px; padding: 6px 8px; width: 100%; font-size: 0.75rem; border-left: 3px solid #3b82f6; }
-    .player-card.multi { background: #3d3a1a; border-left-color: #fbbf24; border: 1px solid #fbbf24; }
-    .badge-role { background: #1e293b; border-radius: 30px; padding: 2px 8px; font-size: 0.6rem; color: #94a3b8; }
-    .kpi-value { font-weight: 700; color: #f1f5f9; }
-    .kpi-label { color: #94a3b8; font-size: 0.7rem; letter-spacing: 0.3px; }
-    .btn-emerald { background: #059669; color: white; border-radius: 40px; padding: 6px 16px; font-weight: 600; transition: 0.15s; }
-    .btn-emerald:hover { background: #047857; transform: scale(0.97); }
-    .btn-amber { background: #d97706; color: #0f172a; border-radius: 40px; padding: 6px 16px; font-weight: 600; }
-    .btn-outline { border: 1px solid #334155; border-radius: 40px; padding: 6px 14px; color: #cbd5e1; }
-    .btn-outline:hover { background: #334155; }
-    .empty-state { color: #475569; text-align: center; padding: 20px 10px; }
-    .formation-tab { background: #1e293b; border-radius: 30px; padding: 6px 14px; font-size: 0.8rem; font-weight: 500; color: #94a3b8; cursor: pointer; transition: 0.1s; border: 1px solid transparent; }
-    .formation-tab.active { background: #2d3b4f; color: #f1f5f9; border-color: #3b82f6; }
-    .formation-tab:hover { background: #334155; color: #e2e8f0; }
-    .feed-item { border-left: 3px solid #059669; padding-left: 10px; margin: 6px 0; background: #1a2538; border-radius: 8px; padding: 8px 10px; }
-    .feed-item .undo { color: #f87171; cursor: pointer; font-size: 0.7rem; margin-left: 10px; }
-    .feed-item .undo:hover { color: #ef4444; text-decoration: underline; }
-    #dropzone { border: 2px dashed #334155; border-radius: 20px; padding: 12px; transition: 0.15s; }
-    #dropzone.dragover { border-color: #3b82f6; background: #1e293b; }
-    .scouting-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-    .scouting-table th { text-align: left; padding: 6px 8px; color: #94a3b8; border-bottom: 1px solid #334155; }
-    .scouting-table td { padding: 4px 8px; border-bottom: 1px solid #1e293b; }
-    .scouting-table tr:hover { background: #263348; }
-    .tab-btn { background: transparent; border: none; color: #94a3b8; padding: 8px 16px; border-radius: 30px; font-weight: 500; cursor: pointer; transition: 0.1s; }
-    .tab-btn.active { background: #1e293b; color: #f1f5f9; }
-    .tab-btn:hover { color: #e2e8f0; }
-    .role-group { margin-bottom: 12px; }
-    .role-header { background: #1a2538; padding: 4px 12px; border-radius: 30px; display: inline-block; font-size: 0.7rem; font-weight: 600; color: #94a3b8; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5" />
+    <title>Fantacalcio Mantra · Auction Manager</title>
+    <!-- Tailwind + Font Awesome -->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- SheetJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+    </script>
+    <style>
+        body {
+            background: #0f172a;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 8px;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+        }
+        .card-hover:hover {
+            background: #263348;
+        }
+        .btn-emerald {
+            background: #059669;
+            color: white;
+            border-radius: 40px;
+            padding: 6px 16px;
+            font-weight: 600;
+            transition: 0.15s;
+        }
+        .btn-emerald:hover {
+            background: #047857;
+            transform: scale(0.97);
+        }
+        .btn-outline {
+            border: 1px solid #334155;
+            border-radius: 40px;
+            padding: 6px 14px;
+            color: #cbd5e1;
+        }
+        .btn-outline:hover {
+            background: #334155;
+        }
+        .empty-state {
+            color: #475569;
+            text-align: center;
+            padding: 20px 10px;
+        }
+        .formation-tab {
+            background: #1e293b;
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 1px solid transparent;
+        }
+        .formation-tab.active {
+            background: #2d3b4f;
+            color: #f1f5f9;
+            border-color: #3b82f6;
+        }
+        .formation-tab:hover {
+            background: #334155;
+            color: #e2e8f0;
+        }
+        .feed-item {
+            border-left: 3px solid #059669;
+            padding-left: 10px;
+            margin: 6px 0;
+            background: #1a2538;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+        .feed-item .undo {
+            color: #f87171;
+            cursor: pointer;
+            font-size: 0.7rem;
+            margin-left: 10px;
+        }
+        .feed-item .undo:hover {
+            color: #ef4444;
+            text-decoration: underline;
+        }
+        #dropzone {
+            border: 2px dashed #334155;
+            border-radius: 20px;
+            padding: 12px;
+            transition: 0.15s;
+        }
+        #dropzone.dragover {
+            border-color: #3b82f6;
+            background: #1e293b;
+        }
+        .scouting-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .scouting-table th {
+            text-align: left;
+            padding: 6px 8px;
+            color: #94a3b8;
+            border-bottom: 1px solid #334155;
+        }
+        .scouting-table td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #1e293b;
+        }
+        .scouting-table tr:hover {
+            background: #263348;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .tab-btn.active {
+            background: #1e293b;
+            color: #f1f5f9;
+        }
+        .tab-btn:hover {
+            color: #e2e8f0;
+        }
+        .role-group {
+            margin-bottom: 12px;
+        }
+        .role-header {
+            background: #1a2538;
+            padding: 4px 12px;
+            border-radius: 30px;
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        /* Soccer pitch styles */
+        .pitch {
+            background: #1a7a3a;
+            background-image:
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 70%),
+                linear-gradient(0deg, transparent 48%, rgba(255, 255, 255, 0.1) 48%, rgba(255, 255, 255, 0.1) 52%, transparent 52%),
+                linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.1) 48%, rgba(255, 255, 255, 0.1) 52%, transparent 52%);
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            padding: 16px;
+            min-height: 480px;
+            position: relative;
+        }
+        .pitch-line {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .pitch-center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .pitch-center-spot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .pitch-goal {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        .pitch-goal-top {
+            top: 10px;
+        }
+        .pitch-goal-bottom {
+            bottom: 10px;
+        }
+        .pitch-row {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 12px 0;
+            position: relative;
+            z-index: 2;
+        }
+        .pitch-role-slot {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            border-radius: 10px;
+            padding: 6px 8px;
+            min-width: 70px;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s;
+            flex: 1;
+            max-width: 120px;
+        }
+        .pitch-role-slot .role-label {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .pitch-role-slot.empty-critical {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.15);
+        }
+        .pitch-role-slot .player-card {
+            background: #2d3b4f;
+            border-radius: 8px;
+            padding: 4px 6px;
+            width: 100%;
+            font-size: 0.65rem;
+            border-left: 3px solid #3b82f6;
+            text-align: center;
+        }
+        .pitch-role-slot .player-card.multi {
+            background: #3d3a1a;
+            border-left-color: #fbbf24;
+            border: 1px solid #fbbf24;
+        }
+        .pitch-role-slot .empty-slot {
+            font-size: 0.5rem;
+            color: rgba(255, 255, 255, 0.2);
+        }
+        .pitch-role-slot .player-card .player-name {
+            font-weight: 500;
+            font-size: 0.6rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .pitch-role-slot .player-card .player-team {
+            font-size: 0.5rem;
+            color: #94a3b8;
+        }
+        .pitch-role-slot .player-card .player-price {
+            color: #34d399;
+            font-weight: 600;
+            font-size: 0.6rem;
+        }
+        .pitch-role-slot .player-card .multi-badge {
+            font-size: 0.45rem;
+            background: #fbbf24;
+            color: #0f172a;
+            padding: 0 4px;
+            border-radius: 4px;
+            margin-top: 2px;
+        }
+        .pitch-role-slot .role-label.defense {
+            color: #60a5fa;
+        }
+        .pitch-role-slot .role-label.midfield {
+            color: #34d399;
+        }
+        .pitch-role-slot .role-label.attack {
+            color: #fbbf24;
+        }
+        .pitch-role-slot .role-label.goalkeeper {
+            color: #f472b6;
+        }
+
+        @media (max-width: 768px) {
+            .pitch-row {
+                gap: 6px;
+                margin: 6px 0;
+            }
+            .pitch-role-slot {
+                min-width: 50px;
+                min-height: 55px;
+                padding: 4px;
+            }
+            .pitch-role-slot .player-card {
+                font-size: 0.5rem;
+            }
+            .pitch-role-slot .player-card .player-name {
+                font-size: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body class="text-slate-200 p-4 md:p-6 min-h-screen">
 
-<div id="app" class="max-w-7xl mx-auto">
-  <!-- HEADER & SETUP -->
-  <header class="card p-4 mb-4 flex flex-wrap items-center gap-3 justify-between">
-    <div class="flex items-center gap-2 flex-wrap">
-      <i class="fas fa-futbol text-emerald-400 text-xl"></i>
-      <span class="font-bold text-lg">Mantra Auction</span>
-      <div id="dropzone" class="text-xs flex items-center gap-2 cursor-pointer bg-slate-800 px-3 py-1 rounded-full">
-        <i class="fas fa-file-upload text-emerald-400"></i>
-        <span id="fileLabel">Carica XLSX</span>
-        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
-      </div>
+    <div id="app" class="max-w-7xl mx-auto">
+        <!-- HEADER & SETUP -->
+        <header class="card p-4 mb-4 flex flex-wrap items-center gap-3 justify-between">
+            <div class="flex items-center gap-2 flex-wrap">
+                <i class="fas fa-futbol text-emerald-400 text-xl"></i>
+                <span class="font-bold text-lg">Mantra Auction</span>
+                <div id="dropzone" class="text-xs flex items-center gap-2 cursor-pointer bg-slate-800 px-3 py-1 rounded-full">
+                    <i class="fas fa-file-upload text-emerald-400"></i>
+                    <span id="fileLabel">Carica XLSX</span>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-sm">
+                <div><span class="kpi-label">Budget</span> <input id="budgetInput" type="number" value="500" class="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"></div>
+                <div><span class="kpi-label">Team</span> <input id="teamInput" value="Squadra" class="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"></div>
+                <div><span class="kpi-label">Min/Max</span> <input id="minRoster" type="number" value="25" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-white"> / <input id="maxRoster" type="number" value="30" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-white"></div>
+            </div>
+        </header>
+
+        <!-- KPI BAR -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div class="card p-3 flex justify-between"><span class="kpi-label">💰 Rimasti</span><span id="kpiBudget" class="kpi-value text-emerald-400">500</span></div>
+            <div class="card p-3 flex justify-between"><span class="kpi-label">📊 Speso</span><span id="kpiSpent" class="kpi-value text-amber-400">0%</span></div>
+            <div class="card p-3 flex justify-between"><span class="kpi-label">📋 Slots</span><span id="kpiSlots" class="kpi-value">0/25</span></div>
+            <div class="card p-3 flex justify-between"><span class="kpi-label">🔝 Max bid</span><span id="kpiMaxBid" class="kpi-value text-cyan-300">500</span></div>
+        </div>
+
+        <!-- MAIN 2-COL -->
+        <div class="flex flex-col lg:flex-row gap-4">
+            <!-- LEFT: search + purchase + feed -->
+            <div class="lg:w-1/3 space-y-4">
+                <!-- search -->
+                <div class="card p-4">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-3 text-slate-500"></i>
+                        <input id="searchInput" type="text" placeholder="Cerca giocatore o ruolo..." class="w-full bg-slate-800 border border-slate-700 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div id="searchResults" class="mt-2 max-h-48 overflow-y-auto text-sm space-y-1"></div>
+                </div>
+
+                <!-- quick buy panel -->
+                <div class="card p-4" id="buyPanel">
+                    <div id="selectedPlayerDisplay" class="empty-state">Seleziona un giocatore</div>
+                    <div class="flex items-center gap-2 mt-2">
+                        <input id="priceInput" type="number" placeholder="Prezzo" class="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
+                        <button id="confirmBuyBtn" class="btn-emerald text-sm px-4 py-1 disabled:opacity-40" disabled><i class="fas fa-cart-plus mr-1"></i> Acquista</button>
+                        <button id="clearSelectionBtn" class="text-slate-400 text-sm"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div id="buyFeedback" class="text-xs text-amber-400 mt-1"></div>
+                </div>
+
+                <!-- history feed -->
+                <div class="card p-4">
+                    <div class="flex justify-between items-center"><span class="font-semibold">📋 Acquisti</span><span id="feedCount" class="text-xs text-slate-400">0</span></div>
+                    <div id="purchaseFeed" class="max-h-56 overflow-y-auto text-sm mt-2 space-y-1"></div>
+                </div>
+
+                <!-- Flexibility matrix + panic button -->
+                <div class="card p-4 flex flex-wrap items-center gap-2 justify-between">
+                    <span class="text-xs font-medium"><i class="fas fa-puzzle-piece text-amber-400 mr-1"></i> Jolly: <span id="jollyCount">0</span></span>
+                    <button id="panicBtn" class="btn-outline text-xs"><i class="fas fa-life-ring"></i> Free agent</button>
+                    <button id="exportBtn" class="btn-outline text-xs"><i class="fas fa-file-export"></i> Export</button>
+                </div>
+            </div>
+
+            <!-- RIGHT: formations + pitch + scouting -->
+            <div class="lg:w-2/3 space-y-3">
+                <!-- Tabs: Formazioni / Scouting -->
+                <div class="flex gap-1 border-b border-slate-700 pb-1">
+                    <button class="tab-btn active" data-tab="formation">📋 Formazione</button>
+                    <button class="tab-btn" data-tab="scouting">🔍 Scouting (FVM)</button>
+                </div>
+
+                <!-- FORMATION TAB -->
+                <div id="formationTab" class="space-y-3">
+                    <div class="flex flex-wrap gap-1" id="formationTabs">
+                        <span class="formation-tab active" data-f="3-4-3">3-4-3</span>
+                        <span class="formation-tab" data-f="3-4-1-2">3-4-1-2</span>
+                        <span class="formation-tab" data-f="3-4-2-1">3-4-2-1</span>
+                        <span class="formation-tab" data-f="3-5-2">3-5-2</span>
+                        <span class="formation-tab" data-f="3-5-1-1">3-5-1-1</span>
+                        <span class="formation-tab" data-f="4-3-3">4-3-3</span>
+                        <span class="formation-tab" data-f="4-3-1-2">4-3-1-2</span>
+                        <span class="formation-tab" data-f="4-4-2">4-4-2</span>
+                        <span class="formation-tab" data-f="4-1-4-1">4-1-4-1</span>
+                        <span class="formation-tab" data-f="4-4-1-1">4-4-1-1</span>
+                        <span class="formation-tab" data-f="4-2-3-1">4-2-3-1</span>
+                    </div>
+                    <div class="card p-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <span id="formationLabel" class="font-semibold">3-4-3</span>
+                            <span id="coverageLabel" class="text-xs bg-slate-800 px-3 py-1 rounded-full">0% coperto</span>
+                        </div>
+                        <div id="pitchContainer" class="pitch"></div>
+                    </div>
+                </div>
+
+                <!-- SCOUTING TAB -->
+                <div id="scoutingTab" class="hidden card p-3 max-h-[500px] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold">📊 Giocatori per ruolo · ordinati per FVM ↓</span>
+                        <span class="text-xs text-slate-400" id="scoutingCount">0 giocatori</span>
+                    </div>
+                    <div id="scoutingContainer"></div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="flex flex-wrap items-center gap-3 text-sm">
-      <div><span class="kpi-label">Budget</span> <input id="budgetInput" type="number" value="500" class="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"></div>
-      <div><span class="kpi-label">Team</span> <input id="teamInput" value="Squadra" class="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"></div>
-      <div><span class="kpi-label">Min/Max</span> <input id="minRoster" type="number" value="25" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-white"> / <input id="maxRoster" type="number" value="30" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-white"></div>
-    </div>
-  </header>
 
-  <!-- KPI BAR -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-    <div class="card p-3 flex justify-between"><span class="kpi-label">💰 Rimasti</span><span id="kpiBudget" class="kpi-value text-emerald-400">500</span></div>
-    <div class="card p-3 flex justify-between"><span class="kpi-label">📊 Speso</span><span id="kpiSpent" class="kpi-value text-amber-400">0%</span></div>
-    <div class="card p-3 flex justify-between"><span class="kpi-label">📋 Slots</span><span id="kpiSlots" class="kpi-value">0/25</span></div>
-    <div class="card p-3 flex justify-between"><span class="kpi-label">🔝 Max bid</span><span id="kpiMaxBid" class="kpi-value text-cyan-300">500</span></div>
-  </div>
+    <script>
+        (function() {
+            // ----- STATE -----
+            const state = {
+                players: [],
+                bought: [],
+                formation: '3-4-3',
+                selectedPlayerId: null,
+                budget: 500,
+                teamName: 'Squadra',
+                minRoster: 25,
+                maxRoster: 30,
+            };
 
-  <!-- MAIN 2-COL -->
-  <div class="flex flex-col lg:flex-row gap-4">
-    <!-- LEFT: search + purchase + feed -->
-    <div class="lg:w-1/3 space-y-4">
-      <!-- search -->
-      <div class="card p-4">
-        <div class="relative">
-          <i class="fas fa-search absolute left-3 top-3 text-slate-500"></i>
-          <input id="searchInput" type="text" placeholder="Cerca giocatore o ruolo..." class="w-full bg-slate-800 border border-slate-700 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500">
-        </div>
-        <div id="searchResults" class="mt-2 max-h-48 overflow-y-auto text-sm space-y-1"></div>
-      </div>
+            // ----- OFFICIAL FORMATIONS (soccer layout) -----
+            const FORMATIONS = {
+                '3-4-3': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
+                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
+                        { roles: ['W', 'Pc', 'A'], label: 'ATT' }
+                    ]
+                },
+                '3-4-1-2': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
+                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
+                        { roles: ['T'], label: 'TQ' },
+                        { roles: ['A', 'A'], label: 'ATT' }
+                    ]
+                },
+                '3-4-2-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
+                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
+                        { roles: ['T', 'W'], label: 'TQ/W' },
+                        { roles: ['Pc'], label: 'ATT' }
+                    ]
+                },
+                '3-5-2': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
+                        { roles: ['C', 'M', 'C', 'M', 'C'], label: 'MID' },
+                        { roles: ['A', 'A'], label: 'ATT' }
+                    ]
+                },
+                '3-5-1-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
+                        { roles: ['C', 'M', 'C', 'M', 'C'], label: 'MID' },
+                        { roles: ['T'], label: 'TQ' },
+                        { roles: ['Pc'], label: 'ATT' }
+                    ]
+                },
+                '4-3-3': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
+                        { roles: ['C', 'M', 'C'], label: 'MID' },
+                        { roles: ['W', 'Pc', 'A'], label: 'ATT' }
+                    ]
+                },
+                '4-3-1-2': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
+                        { roles: ['C', 'M', 'C'], label: 'MID' },
+                        { roles: ['T'], label: 'TQ' },
+                        { roles: ['A', 'A'], label: 'ATT' }
+                    ]
+                },
+                '4-4-2': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
+                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
+                        { roles: ['A', 'Pc'], label: 'ATT' }
+                    ]
+                },
+                '4-1-4-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
+                        { roles: ['M'], label: 'CDM' },
+                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
+                        { roles: ['Pc'], label: 'ATT' }
+                    ]
+                },
+                '4-4-1-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
+                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
+                        { roles: ['T'], label: 'TQ' },
+                        { roles: ['Pc'], label: 'ATT' }
+                    ]
+                },
+                '4-2-3-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK' },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
+                        { roles: ['C', 'M'], label: 'CDM' },
+                        { roles: ['T', 'W', 'A'], label: 'TQ/W' },
+                        { roles: ['Pc'], label: 'ATT' }
+                    ]
+                }
+            };
 
-      <!-- quick buy panel -->
-      <div class="card p-4" id="buyPanel">
-        <div id="selectedPlayerDisplay" class="empty-state">Seleziona un giocatore</div>
-        <div class="flex items-center gap-2 mt-2">
-          <input id="priceInput" type="number" placeholder="Prezzo" class="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
-          <button id="confirmBuyBtn" class="btn-emerald text-sm px-4 py-1 disabled:opacity-40" disabled><i class="fas fa-cart-plus mr-1"></i> Acquista</button>
-          <button id="clearSelectionBtn" class="text-slate-400 text-sm"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="buyFeedback" class="text-xs text-amber-400 mt-1"></div>
-      </div>
+            // DOM refs
+            const $ = id => document.getElementById(id);
+            const fileInput = $('fileInput');
+            const dropzone = $('dropzone');
+            const searchInput = $('searchInput');
+            const searchResults = $('searchResults');
+            const selectedPlayerDisplay = $('selectedPlayerDisplay');
+            const priceInput = $('priceInput');
+            const confirmBtn = $('confirmBuyBtn');
+            const clearSelBtn = $('clearSelectionBtn');
+            const purchaseFeed = $('purchaseFeed');
+            const feedCount = $('feedCount');
+            const pitchContainer = $('pitchContainer');
+            const formationTabs = $('formationTabs');
+            const formationLabel = $('formationLabel');
+            const coverageLabel = $('coverageLabel');
+            const kpiBudget = $('kpiBudget');
+            const kpiSpent = $('kpiSpent');
+            const kpiSlots = $('kpiSlots');
+            const kpiMaxBid = $('kpiMaxBid');
+            const jollyCount = $('jollyCount');
+            const panicBtn = $('panicBtn');
+            const exportBtn = $('exportBtn');
+            const budgetInput = $('budgetInput');
+            const teamInput = $('teamInput');
+            const minRoster = $('minRoster');
+            const maxRoster = $('maxRoster');
+            const buyFeedback = $('buyFeedback');
+            const scoutingContainer = $('scoutingContainer');
+            const scoutingCount = $('scoutingCount');
+            const formationTab = $('formationTab');
+            const scoutingTab = $('scoutingTab');
 
-      <!-- history feed -->
-      <div class="card p-4">
-        <div class="flex justify-between items-center"><span class="font-semibold">📋 Acquisti</span><span id="feedCount" class="text-xs text-slate-400">0</span></div>
-        <div id="purchaseFeed" class="max-h-56 overflow-y-auto text-sm mt-2 space-y-1"></div>
-      </div>
+            // ----- HELPERS -----
+            function parseRoles(rmStr) {
+                if (!rmStr) return [];
+                return rmStr.split(/[;,]/).map(s => s.trim()).filter(Boolean);
+            }
 
-      <!-- Flexibility matrix + panic button -->
-      <div class="card p-4 flex flex-wrap items-center gap-2 justify-between">
-        <span class="text-xs font-medium"><i class="fas fa-puzzle-piece text-amber-400 mr-1"></i> Jolly: <span id="jollyCount">0</span></span>
-        <button id="panicBtn" class="btn-outline text-xs"><i class="fas fa-life-ring"></i> Free agent</button>
-        <button id="exportBtn" class="btn-outline text-xs"><i class="fas fa-file-export"></i> Export</button>
-      </div>
-    </div>
+            function getPlayer(id) { return state.players.find(p => p.id === id); }
 
-    <!-- RIGHT: formations + pitch + scouting -->
-    <div class="lg:w-2/3 space-y-3">
-      <!-- Tabs: Formazioni / Scouting -->
-      <div class="flex gap-1 border-b border-slate-700 pb-1">
-        <button class="tab-btn active" data-tab="formation">📋 Formazione</button>
-        <button class="tab-btn" data-tab="scouting">🔍 Scouting (FVM)</button>
-      </div>
+            function boughtIds() { return new Set(state.bought.map(b => b.id)); }
 
-      <!-- FORMATION TAB -->
-      <div id="formationTab" class="space-y-3">
-        <div class="flex flex-wrap gap-1" id="formationTabs">
-          <span class="formation-tab active" data-f="3-4-2-1">3-4-2-1</span>
-          <span class="formation-tab" data-f="3-4-1-2">3-4-1-2</span>
-          <span class="formation-tab" data-f="3-4-3">3-4-3</span>
-          <span class="formation-tab" data-f="3-5-2">3-5-2</span>
-          <span class="formation-tab" data-f="3-5-1-1">3-5-1-1</span>
-          <span class="formation-tab" data-f="4-3-3">4-3-3</span>
-          <span class="formation-tab" data-f="4-3-1-2">4-3-1-2</span>
-          <span class="formation-tab" data-f="4-2-3-1">4-2-3-1</span>
-          <span class="formation-tab" data-f="4-3-2-1">4-3-2-1</span>
-          <span class="formation-tab" data-f="4-1-4-1">4-1-4-1</span>
-          <span class="formation-tab" data-f="4-4-2">4-4-2</span>
-          <span class="formation-tab" data-f="4-4-1-1">4-4-1-1</span>
-        </div>
-        <div class="card p-3">
-          <div class="flex justify-between items-center mb-2"><span id="formationLabel" class="font-semibold">3-4-2-1</span><span id="coverageLabel" class="text-xs bg-slate-800 px-3 py-1 rounded-full">0% coperto</span></div>
-          <div id="pitchContainer" class="pitch-grid"></div>
-        </div>
-      </div>
+            function remainingBudget() {
+                const spent = state.bought.reduce((sum, b) => sum + b.price, 0);
+                return state.budget - spent;
+            }
 
-      <!-- SCOUTING TAB -->
-      <div id="scoutingTab" class="hidden card p-3 max-h-[500px] overflow-y-auto">
-        <div class="flex justify-between items-center mb-2">
-          <span class="font-semibold">📊 Giocatori per ruolo · ordinati per FVM ↓</span>
-          <span class="text-xs text-slate-400" id="scoutingCount">0 giocatori</span>
-        </div>
-        <div id="scoutingContainer"></div>
-      </div>
-    </div>
-  </div>
-</div>
+            function usedSlots() { return state.bought.length; }
 
-<script>
-  (function() {
-    // ----- STATE -----
-    const state = {
-      players: [],          // parsed from xlsx
-      bought: [],           // { id, name, team, roles, price, baseQuote, fvm, percentage }
-      formation: '3-4-2-1',
-      selectedPlayerId: null,
-      budget: 500,
-      teamName: 'Squadra',
-      minRoster: 25,
-      maxRoster: 30,
-    };
+            function maxBid() {
+                const remain = remainingBudget();
+                const slots = usedSlots();
+                const maxSlots = state.maxRoster;
+                const leftSlots = Math.max(0, maxSlots - slots - 1);
+                return Math.max(0, remain - leftSlots);
+            }
 
-    // formation map
-    const FORMATIONS = {
-      '3-4-3': { Por:1, Dd:1, Ds:1, Dc:1, C:2, W:1, A:1, Pc:1 },
-      '3-4-1-2': { Por:1, Dd:1, Ds:1, Dc:1, C:2, T:1, A:2, Pc:0 },
-      '3-4-2-1': { Por:1, Dd:1, Ds:1, Dc:1, C:2, T:1, W:1, A:1, Pc:1 },
-      '3-5-2': { Por:1, Dd:1, Ds:1, Dc:1, C:2, M:1, A:2, Pc:0 },
-      '3-5-1-1': { Por:1, Dd:1, Ds:1, Dc:1, C:2, M:1, T:1, A:1, Pc:1 },
-      '4-3-3': { Por:1, Dd:1, Ds:1, Dc:2, C:2, M:1, W:1, A:1, Pc:1 },
-      '4-3-1-2': { Por:1, Dd:1, Ds:1, Dc:2, C:2, M:1, T:1, A:2, Pc:0 },
-      '4-4-2': { Por:1, Dd:1, Ds:1, Dc:2, C:2, W:1, A:1, Pc:1 },
-      '4-1-4-1': { Por:1, Dd:1, Ds:1, Dc:2, M:1, C:2, W:1, A:1, Pc:1 },
-      '4-4-1-1': { Por:1, Dd:1, Ds:1, Dc:2, C:2, W:1, T:1, A:1, Pc:1 },
-      '4-2-3-1': { Por:1, Dd:1, Ds:1, Dc:2, C:1, M:1, T:1, W:1, A:1, Pc:1 },
-    };
+            // ----- RENDER FUNCTIONS -----
+            function updateKPIs() {
+                const remain = remainingBudget();
+                const spent = state.budget - remain;
+                const used = usedSlots();
+                const maxSlots = state.maxRoster;
+                const pct = state.budget ? Math.round((spent / state.budget) * 100) : 0;
+                kpiBudget.textContent = remain;
+                kpiSpent.textContent = pct + '%';
+                kpiSlots.textContent = `${used}/${maxSlots}`;
+                kpiMaxBid.textContent = maxBid();
+                const jolly = state.bought.filter(b => b.roles && b.roles.length > 1).length;
+                jollyCount.textContent = jolly;
+                confirmBtn.disabled = !state.selectedPlayerId || !priceInput.value || Number(priceInput.value) > maxBid() ||
+                    Number(priceInput.value) <= 0;
+            }
 
-    // DOM refs
-    const $ = id => document.getElementById(id);
-    const fileInput = $('fileInput');
-    const dropzone = $('dropzone');
-    const searchInput = $('searchInput');
-    const searchResults = $('searchResults');
-    const selectedPlayerDisplay = $('selectedPlayerDisplay');
-    const priceInput = $('priceInput');
-    const confirmBtn = $('confirmBuyBtn');
-    const clearSelBtn = $('clearSelectionBtn');
-    const purchaseFeed = $('purchaseFeed');
-    const feedCount = $('feedCount');
-    const pitchContainer = $('pitchContainer');
-    const formationTabs = $('formationTabs');
-    const formationLabel = $('formationLabel');
-    const coverageLabel = $('coverageLabel');
-    const kpiBudget = $('kpiBudget');
-    const kpiSpent = $('kpiSpent');
-    const kpiSlots = $('kpiSlots');
-    const kpiMaxBid = $('kpiMaxBid');
-    const jollyCount = $('jollyCount');
-    const panicBtn = $('panicBtn');
-    const exportBtn = $('exportBtn');
-    const budgetInput = $('budgetInput');
-    const teamInput = $('teamInput');
-    const minRoster = $('minRoster');
-    const maxRoster = $('maxRoster');
-    const buyFeedback = $('buyFeedback');
-    const scoutingContainer = $('scoutingContainer');
-    const scoutingCount = $('scoutingCount');
-    const formationTab = $('formationTab');
-    const scoutingTab = $('scoutingTab');
+            function renderFeed() {
+                purchaseFeed.innerHTML = state.bought.map((b, idx) => `
+                        <div class="feed-item flex justify-between items-center">
+                            <span><strong>${b.name}</strong> (${b.team}) <span class="text-emerald-300">${b.price}€</span> <span class="text-xs text-slate-400">${b.roles.join('/')}</span></span>
+                            <span class="undo" data-idx="${idx}"><i class="fas fa-undo-alt"></i></span>
+                        </div>
+                    `).join('');
+                feedCount.textContent = state.bought.length;
+                document.querySelectorAll('.feed-item .undo').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const idx = parseInt(this.dataset.idx);
+                        if (!isNaN(idx) && idx >= 0 && idx < state.bought.length) {
+                            state.bought.splice(idx, 1);
+                            renderAll();
+                        }
+                    });
+                });
+            }
 
-    // ----- HELPERS -----
-    function parseRoles(rmStr) {
-      if (!rmStr) return [];
-      return rmStr.split(/[;,]/).map(s => s.trim()).filter(Boolean);
-    }
-    function getPlayer(id) { return state.players.find(p => p.id === id); }
-    function boughtIds() { return new Set(state.bought.map(b => b.id)); }
-    function remainingBudget() {
-      const spent = state.bought.reduce((sum, b) => sum + b.price, 0);
-      return state.budget - spent;
-    }
-    function usedSlots() { return state.bought.length; }
-    function maxBid() {
-      const remain = remainingBudget();
-      const slots = usedSlots();
-      const maxSlots = state.maxRoster;
-      const leftSlots = Math.max(0, maxSlots - slots - 1);
-      return Math.max(0, remain - leftSlots);
-    }
+            function renderPitch() {
+                const formation = state.formation;
+                const formationData = FORMATIONS[formation];
+                if (!formationData) {
+                    pitchContainer.innerHTML = '<div class="empty-state">Formazione non trovata</div>';
+                    return;
+                }
 
-    // ----- RENDER FUNCTIONS -----
-    function updateKPIs() {
-      const remain = remainingBudget();
-      const spent = state.budget - remain;
-      const used = usedSlots();
-      const maxSlots = state.maxRoster;
-      const pct = state.budget ? Math.round((spent/state.budget)*100) : 0;
-      kpiBudget.textContent = remain;
-      kpiSpent.textContent = pct + '%';
-      kpiSlots.textContent = `${used}/${maxSlots}`;
-      kpiMaxBid.textContent = maxBid();
-      const jolly = state.bought.filter(b => b.roles && b.roles.length > 1).length;
-      jollyCount.textContent = jolly;
-      confirmBtn.disabled = !state.selectedPlayerId || !priceInput.value || Number(priceInput.value) > maxBid() || Number(priceInput.value) <= 0;
-    }
+                const boughtWithRoles = state.bought.filter(b => b.roles && b.roles.length > 0);
+                const totalSlots = formationData.rows.reduce((acc, row) => acc + row.roles.length, 0);
+                let filledSlots = 0;
 
-    function renderFeed() {
-      purchaseFeed.innerHTML = state.bought.map((b, idx) => `
-        <div class="feed-item flex justify-between items-center">
-          <span><strong>${b.name}</strong> (${b.team}) <span class="text-emerald-300">${b.price}€</span> <span class="text-xs text-slate-400">${b.roles.join('/')}</span></span>
-          <span class="undo" data-idx="${idx}"><i class="fas fa-undo-alt"></i></span>
-        </div>
-      `).join('');
-      feedCount.textContent = state.bought.length;
-      document.querySelectorAll('.feed-item .undo').forEach(el => {
-        el.addEventListener('click', function() {
-          const idx = parseInt(this.dataset.idx);
-          if (!isNaN(idx) && idx >= 0 && idx < state.bought.length) {
-            state.bought.splice(idx, 1);
+                let html = '';
+
+                // Add pitch background elements
+                html += `
+                        <div class="pitch-goal pitch-goal-top"></div>
+                        <div class="pitch-goal pitch-goal-bottom"></div>
+                        <div class="pitch-center-circle"></div>
+                        <div class="pitch-center-spot"></div>
+                    `;
+
+                formationData.rows.forEach((row, rowIndex) => {
+                    html += `<div class="pitch-row">`;
+                    const roleCount = row.roles.length;
+
+                    row.roles.forEach((role, roleIndex) => {
+                        // Find players that match this role
+                        const playersForRole = boughtWithRoles.filter(b => b.roles.includes(role));
+                        const hasPlayer = playersForRole.length > 0;
+                        const player = hasPlayer ? playersForRole[0] : null;
+
+                        // Check if this slot is critical (mandatory and empty)
+                        const isCritical = rowIndex > 0 && !hasPlayer && usedSlots() / state.maxRoster > 0.6;
+
+                        if (hasPlayer) filledSlots++;
+
+                        const isMulti = player && player.roles.length > 1;
+                        const altRoles = player ? player.roles.filter(r => r !== role).join('+') : '';
+
+                        // Determine role category for styling
+                        let roleCategory = '';
+                        if (['Por'].includes(role)) roleCategory = 'goalkeeper';
+                        else if (['Dd', 'Ds', 'Dc'].includes(role)) roleCategory = 'defense';
+                        else if (['C', 'M', 'T'].includes(role)) roleCategory = 'midfield';
+                        else if (['W', 'A', 'Pc'].includes(role)) roleCategory = 'attack';
+
+                        html += `
+                                <div class="pitch-role-slot ${isCritical ? 'empty-critical' : ''}" style="flex: ${roleCount > 4 ? '0 0 18%' : '1'};">
+                                    <span class="role-label ${roleCategory}">${role}</span>
+                                    ${player ? `
+                                        <div class="player-card ${isMulti ? 'multi' : ''}">
+                                            <div class="player-name">${player.name}</div>
+                                            <div class="player-team">${player.team}</div>
+                                            <div class="player-price">${player.price}€</div>
+                                            ${isMulti ? `<div class="multi-badge">+${altRoles}</div>` : ''}
+                                        </div>
+                                    ` : `
+                                        <div class="empty-slot">⬜ libero</div>
+                                    `}
+                                </div>
+                            `;
+                    });
+
+                    html += `</div>`;
+                });
+
+                pitchContainer.innerHTML = html;
+
+                // Update coverage
+                const pct = totalSlots ? Math.round((filledSlots / totalSlots) * 100) : 0;
+                coverageLabel.textContent = `${pct}% coperto`;
+                formationLabel.textContent = formation;
+            }
+
+            function renderScouting() {
+                const boughtSet = boughtIds();
+                const available = state.players.filter(p => !boughtSet.has(p.id) && p.roles && p.roles.length > 0);
+                const roleMap = {};
+                available.forEach(p => {
+                    p.roles.forEach(role => {
+                        if (!roleMap[role]) roleMap[role] = [];
+                        roleMap[role].push(p);
+                    });
+                });
+                Object.keys(roleMap).forEach(role => {
+                    roleMap[role].sort((a, b) => (b.fvm || b.baseQuote || 0) - (a.fvm || a.baseQuote || 0));
+                });
+                let html = '';
+                const sortedRoles = Object.keys(roleMap).sort();
+                sortedRoles.forEach(role => {
+                    const players = roleMap[role];
+                    html += `<div class="role-group"><span class="role-header">${role} (${players.length})</span>
+                            <table class="scouting-table">
+                                <thead><tr><th>Nome</th><th>Squadra</th><th>FVM</th><th>Ruoli</th></tr></thead>
+                                <tbody>`;
+                    players.slice(0, 15).forEach(p => {
+                        html +=
+                            `<tr><td>${p.name}</td><td>${p.team}</td><td>${p.fvm || p.baseQuote || '-'}</td><td class="text-xs text-slate-400">${p.roles.join('/')}</td></tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                });
+                scoutingContainer.innerHTML = html || '<div class="empty-state">Nessun giocatore disponibile</div>';
+                scoutingCount.textContent = available.length + ' giocatori';
+            }
+
+            function renderAll() {
+                updateKPIs();
+                renderFeed();
+                renderPitch();
+                renderScouting();
+
+                if (state.selectedPlayerId) {
+                    const p = getPlayer(state.selectedPlayerId);
+                    if (p && !boughtIds().has(p.id)) {
+                        selectedPlayerDisplay.innerHTML =
+                            `<div class="text-sm"><strong>${p.name}</strong> (${p.team}) <span class="text-amber-400">${p.roles.join('/')}</span> · base ${p.baseQuote}</div>`;
+                        priceInput.value = p.baseQuote || 1;
+                        confirmBtn.disabled = false;
+                    } else {
+                        state.selectedPlayerId = null;
+                        selectedPlayerDisplay.innerHTML = `<div class="empty-state">Seleziona un giocatore</div>`;
+                        confirmBtn.disabled = true;
+                    }
+                } else {
+                    selectedPlayerDisplay.innerHTML = `<div class="empty-state">Seleziona un giocatore</div>`;
+                    confirmBtn.disabled = true;
+                }
+                if (searchInput.value.length > 0) performSearch(searchInput.value);
+            }
+
+            // ----- SEARCH -----
+            function performSearch(query) {
+                if (!query.trim()) { searchResults.innerHTML = ''; return; }
+                const q = query.toLowerCase();
+                const boughtSet = boughtIds();
+                const available = state.players.filter(p => !boughtSet.has(p.id) &&
+                    (p.name.toLowerCase().includes(q) || p.roles.some(r => r.toLowerCase().includes(q)) || p.team
+                    .toLowerCase().includes(q))
+                );
+                searchResults.innerHTML = available.slice(0, 12).map(p => `
+                        <div class="cursor-pointer hover:bg-slate-700 p-1 rounded flex justify-between" data-id="${p.id}">
+                            <span>${p.name} (${p.team})</span>
+                            <span class="text-xs text-slate-400">${p.roles.join('/')}</span>
+                        </div>
+                    `).join('');
+                searchResults.querySelectorAll('[data-id]').forEach(el => {
+                    el.addEventListener('click', function() {
+                        const id = parseInt(this.dataset.id);
+                        state.selectedPlayerId = id;
+                        renderAll();
+                    });
+                });
+            }
+
+            // ----- XLSX PARSER -----
+            function parseXLSX(data) {
+                try {
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheet = workbook.Sheets['Tutti'] || workbook.Sheets[workbook.SheetNames[0]];
+                    if (!sheet) return [];
+                    const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+                    if (json.length < 2) return [];
+                    const headers = json[1];
+                    const idIdx = headers.indexOf('Id');
+                    const nameIdx = headers.indexOf('Nome');
+                    const teamIdx = headers.indexOf('Squadra');
+                    const rmIdx = headers.indexOf('RM');
+                    const qtIdx = headers.indexOf('Qt.A M') > -1 ? headers.indexOf('Qt.A M') : (headers.indexOf('Qt.I M') > -1 ?
+                        headers.indexOf('Qt.I M') : headers.indexOf('FVM M'));
+                    const fvmIdx = headers.indexOf('FVM M') > -1 ? headers.indexOf('FVM M') : (headers.indexOf('FVM') > -1 ?
+                        headers.indexOf('FVM') : -1);
+                    if (idIdx === -1 || nameIdx === -1 || teamIdx === -1 || rmIdx === -1 || qtIdx === -1) {
+                        alert('Colonne non trovate: verifica header (Id, Nome, Squadra, RM, Qt.A M)');
+                        return [];
+                    }
+                    const players = [];
+                    for (let i = 2; i < json.length; i++) {
+                        const row = json[i];
+                        if (!row || !row[idIdx]) continue;
+                        const id = Number(row[idIdx]);
+                        const name = String(row[nameIdx] || '').trim();
+                        const team = String(row[teamIdx] || '').trim();
+                        const rm = String(row[rmIdx] || '').trim();
+                        const baseQuote = parseFloat(row[qtIdx]) || 1;
+                        const fvm = fvmIdx > -1 ? parseFloat(row[fvmIdx]) || baseQuote : baseQuote;
+                        if (!name || !team) continue;
+                        const roles = parseRoles(rm);
+                        if (roles.length === 0) continue;
+                        players.push({ id, name, team, roles, baseQuote, fvm });
+                    }
+                    return players;
+                } catch (e) { alert('Errore parse XLSX: ' + e.message); return []; }
+            }
+
+            // ----- LOAD FILE -----
+            function loadFile(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const parsed = parseXLSX(data);
+                    if (parsed.length) {
+                        state.players = parsed;
+                        state.bought = [];
+                        state.selectedPlayerId = null;
+                        renderAll();
+                        document.getElementById('fileLabel').textContent = file.name + ' ✅';
+                    } else {
+                        alert('Nessun giocatore valido trovato.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            // ----- EVENT BINDINGS -----
+            fileInput.addEventListener('change', function(e) {
+                if (this.files.length) loadFile(this.files[0]);
+            });
+            dropzone.addEventListener('dragover', e => { e.preventDefault();
+                dropzone.classList.add('dragover'); });
+            dropzone.addEventListener('dragleave', e => { dropzone.classList.remove('dragover'); });
+            dropzone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+            });
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            // Formation tabs
+            formationTabs.addEventListener('click', function(e) {
+                const tab = e.target.closest('.formation-tab');
+                if (!tab) return;
+                document.querySelectorAll('.formation-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                state.formation = tab.dataset.f;
+                renderAll();
+            });
+
+            // Main tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    const tab = this.dataset.tab;
+                    if (tab === 'formation') {
+                        formationTab.classList.remove('hidden');
+                        scoutingTab.classList.add('hidden');
+                    } else {
+                        formationTab.classList.add('hidden');
+                        scoutingTab.classList.remove('hidden');
+                        renderScouting();
+                    }
+                });
+            });
+
+            // Search
+            searchInput.addEventListener('input', function() { performSearch(this.value); });
+
+            // Clear selection
+            clearSelBtn.addEventListener('click', function() {
+                state.selectedPlayerId = null;
+                renderAll();
+            });
+
+            // Confirm buy
+            confirmBtn.addEventListener('click', function() {
+                const id = state.selectedPlayerId;
+                if (!id) return;
+                const player = getPlayer(id);
+                if (!player) return;
+                if (boughtIds().has(id)) { buyFeedback.textContent = 'Già acquistato!'; return; }
+                const price = Number(priceInput.value);
+                if (price <= 0 || isNaN(price)) { buyFeedback.textContent = 'Prezzo non valido'; return; }
+                if (price > maxBid()) { buyFeedback.textContent = `Supera il max bid (${maxBid()})`; return; }
+                if (usedSlots() >= state.maxRoster) { buyFeedback.textContent = 'Roster pieno!'; return; }
+                state.bought.push({
+                    id: player.id,
+                    name: player.name,
+                    team: player.team,
+                    roles: [...player.roles],
+                    price: price,
+                    baseQuote: player.baseQuote,
+                    fvm: player.fvm || player.baseQuote,
+                    percentage: state.budget ? Math.round((price / state.budget) * 100) : 0
+                });
+                state.selectedPlayerId = null;
+                buyFeedback.textContent = `✅ ${player.name} acquistato!`;
+                renderAll();
+            });
+
+            // Budget, roster
+            budgetInput.addEventListener('change', function() {
+                state.budget = Number(this.value) || 500;
+                renderAll();
+            });
+            teamInput.addEventListener('change', function() {
+                state.teamName = this.value || 'Squadra';
+            });
+            minRoster.addEventListener('change', function() {
+                state.minRoster = Number(this.value) || 25;
+                if (state.minRoster > state.maxRoster) state.maxRoster = state.minRoster;
+                renderAll();
+            });
+            maxRoster.addEventListener('change', function() {
+                state.maxRoster = Number(this.value) || 30;
+                if (state.maxRoster < state.minRoster) state.minRoster = state.maxRoster;
+                renderAll();
+            });
+
+            // Panic
+            panicBtn.addEventListener('click', function() {
+                const boughtSet = boughtIds();
+                const free = state.players.filter(p => !boughtSet.has(p.id));
+                if (!free.length) { alert('Nessun free agent disponibile.'); return; }
+                const sorted = [...free].sort((a, b) => (b.fvm || b.baseQuote) - (a.fvm || a.baseQuote));
+                const msg = sorted.slice(0, 25).map(p =>
+                    `${p.name} (${p.team}) [${p.roles.join('/')}] FVM ${p.fvm || p.baseQuote}`
+                ).join('\n');
+                alert('Free agent (top 25 per FVM):\n' + msg);
+            });
+
+            // Export
+            exportBtn.addEventListener('click', function() {
+                if (!state.bought.length) { alert('Nessun acquisto da esportare.'); return; }
+                let csv = 'Nome,Squadra,Prezzo,FVM,Percentuale,ID\n';
+                state.bought.forEach(b => {
+                    csv +=
+                        `${b.name},${b.team},${b.price},${b.fvm || b.baseQuote},${b.percentage || 0},${b.id}\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'roster_mantra.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            // Init
             renderAll();
-          }
-        });
-      });
-    }
-
-    function renderPitch() {
-      const formation = state.formation;
-      const slots = FORMATIONS[formation];
-      if (!slots) return;
-      const roleKeys = Object.keys(slots);
-      let html = '';
-      const boughtWithRoles = state.bought.filter(b => b.roles && b.roles.length > 0);
-      roleKeys.forEach(role => {
-        const count = slots[role] || 0;
-        const playersForRole = boughtWithRoles.filter(b => b.roles.includes(role));
-        const displayPlayers = playersForRole.slice(0, count);
-        const emptySlots = Math.max(0, count - displayPlayers.length);
-        const isMandatory = count > 0;
-        html += `<div class="role-slot ${isMandatory && emptySlots > 0 && usedSlots()/state.maxRoster > 0.6 ? 'border-red-500 border-2' : ''}">`;
-        html += `<div class="text-[0.5rem] text-slate-400 uppercase">${role}</div>`;
-        displayPlayers.forEach(p => {
-          const isMulti = p.roles.length > 1;
-          const altRoles = p.roles.filter(r => r !== role).join('+');
-          html += `<div class="player-card ${isMulti ? 'multi' : ''} text-xs">
-            <div class="flex justify-between"><span>${p.name}</span><span class="text-emerald-300">${p.price}</span></div>
-            <div class="flex justify-between text-[0.55rem] text-slate-400"><span>${p.team}</span><span>${isMulti ? '🟡 '+altRoles : ''}</span></div>
-          </div>`;
-        });
-        if (emptySlots > 0) {
-          for (let i=0; i<emptySlots; i++) {
-            html += `<div class="text-[0.5rem] text-slate-600">⬜ libero</div>`;
-          }
-        }
-        html += `</div>`;
-      });
-      pitchContainer.innerHTML = html;
-      const totalSlots = roleKeys.reduce((acc, r) => acc + (slots[r]||0), 0);
-      const filled = roleKeys.reduce((acc, r) => {
-        const count = slots[r]||0;
-        const players = boughtWithRoles.filter(b => b.roles.includes(r)).length;
-        return acc + Math.min(count, players);
-      }, 0);
-      const pct = totalSlots ? Math.round((filled/totalSlots)*100) : 0;
-      coverageLabel.textContent = `${pct}% coperto`;
-      formationLabel.textContent = formation;
-    }
-
-    function renderScouting() {
-      // group by role, sort by FVM desc (use baseQuote as FVM if no explicit FVM field)
-      const boughtSet = boughtIds();
-      const available = state.players.filter(p => !boughtSet.has(p.id) && p.roles && p.roles.length > 0);
-      // Build role map
-      const roleMap = {};
-      available.forEach(p => {
-        p.roles.forEach(role => {
-          if (!roleMap[role]) roleMap[role] = [];
-          roleMap[role].push(p);
-        });
-      });
-      // Sort each role list by FVM (baseQuote) descending
-      Object.keys(roleMap).forEach(role => {
-        roleMap[role].sort((a, b) => (b.fvm || b.baseQuote || 0) - (a.fvm || a.baseQuote || 0));
-      });
-      // Render
-      let html = '';
-      const sortedRoles = Object.keys(roleMap).sort();
-      sortedRoles.forEach(role => {
-        const players = roleMap[role];
-        html += `<div class="role-group"><span class="role-header">${role} (${players.length})</span>
-          <table class="scouting-table">
-            <thead><tr><th>Nome</th><th>Squadra</th><th>FVM</th><th>Ruoli</th></tr></thead>
-            <tbody>`;
-        players.slice(0, 15).forEach(p => {
-          html += `<tr><td>${p.name}</td><td>${p.team}</td><td>${p.fvm || p.baseQuote || '-'}</td><td class="text-xs text-slate-400">${p.roles.join('/')}</td></tr>`;
-        });
-        html += `</tbody></table></div>`;
-      });
-      scoutingContainer.innerHTML = html || '<div class="empty-state">Nessun giocatore disponibile</div>';
-      scoutingCount.textContent = available.length + ' giocatori';
-    }
-
-    function renderAll() {
-      updateKPIs();
-      renderFeed();
-      renderPitch();
-      renderScouting();
-      // selected player display
-      if (state.selectedPlayerId) {
-        const p = getPlayer(state.selectedPlayerId);
-        if (p && !boughtIds().has(p.id)) {
-          selectedPlayerDisplay.innerHTML = `<div class="text-sm"><strong>${p.name}</strong> (${p.team}) <span class="text-amber-400">${p.roles.join('/')}</span> · base ${p.baseQuote}</div>`;
-          priceInput.value = p.baseQuote || 1;
-          confirmBtn.disabled = false;
-        } else {
-          state.selectedPlayerId = null;
-          selectedPlayerDisplay.innerHTML = `<div class="empty-state">Seleziona un giocatore</div>`;
-          confirmBtn.disabled = true;
-        }
-      } else {
-        selectedPlayerDisplay.innerHTML = `<div class="empty-state">Seleziona un giocatore</div>`;
-        confirmBtn.disabled = true;
-      }
-      if (searchInput.value.length > 0) performSearch(searchInput.value);
-    }
-
-    // ----- SEARCH -----
-    function performSearch(query) {
-      if (!query.trim()) { searchResults.innerHTML = ''; return; }
-      const q = query.toLowerCase();
-      const boughtSet = boughtIds();
-      const available = state.players.filter(p => !boughtSet.has(p.id) && 
-        (p.name.toLowerCase().includes(q) || p.roles.some(r => r.toLowerCase().includes(q)) || p.team.toLowerCase().includes(q))
-      );
-      searchResults.innerHTML = available.slice(0, 12).map(p => `
-        <div class="cursor-pointer hover:bg-slate-700 p-1 rounded flex justify-between" data-id="${p.id}">
-          <span>${p.name} (${p.team})</span>
-          <span class="text-xs text-slate-400">${p.roles.join('/')}</span>
-        </div>
-      `).join('');
-      searchResults.querySelectorAll('[data-id]').forEach(el => {
-        el.addEventListener('click', function() {
-          const id = parseInt(this.dataset.id);
-          state.selectedPlayerId = id;
-          renderAll();
-        });
-      });
-    }
-
-    // ----- XLSX PARSER (with FVM) -----
-    function parseXLSX(data) {
-      try {
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets['Tutti'] || workbook.Sheets[workbook.SheetNames[0]];
-        if (!sheet) return [];
-        const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-        if (json.length < 2) return [];
-        const headers = json[1];
-        const idIdx = headers.indexOf('Id');
-        const nameIdx = headers.indexOf('Nome');
-        const teamIdx = headers.indexOf('Squadra');
-        const rmIdx = headers.indexOf('RM');
-        const qtIdx = headers.indexOf('Qt.A M') > -1 ? headers.indexOf('Qt.A M') : (headers.indexOf('Qt.I M') > -1 ? headers.indexOf('Qt.I M') : headers.indexOf('FVM M'));
-        const fvmIdx = headers.indexOf('FVM M') > -1 ? headers.indexOf('FVM M') : (headers.indexOf('FVM') > -1 ? headers.indexOf('FVM') : -1);
-        if (idIdx === -1 || nameIdx === -1 || teamIdx === -1 || rmIdx === -1 || qtIdx === -1) {
-          alert('Colonne non trovate: verifica header (Id, Nome, Squadra, RM, Qt.A M)');
-          return [];
-        }
-        const players = [];
-        for (let i=2; i<json.length; i++) {
-          const row = json[i];
-          if (!row || !row[idIdx]) continue;
-          const id = Number(row[idIdx]);
-          const name = String(row[nameIdx] || '').trim();
-          const team = String(row[teamIdx] || '').trim();
-          const rm = String(row[rmIdx] || '').trim();
-          const baseQuote = parseFloat(row[qtIdx]) || 1;
-          const fvm = fvmIdx > -1 ? parseFloat(row[fvmIdx]) || baseQuote : baseQuote;
-          if (!name || !team) continue;
-          const roles = parseRoles(rm);
-          if (roles.length === 0) continue;
-          players.push({ id, name, team, roles, baseQuote, fvm });
-        }
-        return players;
-      } catch(e) { alert('Errore parse XLSX: '+e.message); return []; }
-    }
-
-    // ----- LOAD FILE -----
-    function loadFile(file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const parsed = parseXLSX(data);
-        if (parsed.length) {
-          state.players = parsed;
-          state.bought = [];
-          state.selectedPlayerId = null;
-          renderAll();
-          document.getElementById('fileLabel').textContent = file.name + ' ✅';
-        } else {
-          alert('Nessun giocatore valido trovato.');
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    // ----- EVENT BINDINGS -----
-    fileInput.addEventListener('change', function(e) {
-      if (this.files.length) loadFile(this.files[0]);
-    });
-    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-    dropzone.addEventListener('dragleave', e => { dropzone.classList.remove('dragover'); });
-    dropzone.addEventListener('drop', e => {
-      e.preventDefault(); dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
-    });
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    // Formation tabs
-    formationTabs.addEventListener('click', function(e) {
-      const tab = e.target.closest('.formation-tab');
-      if (!tab) return;
-      document.querySelectorAll('.formation-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      state.formation = tab.dataset.f;
-      renderAll();
-    });
-
-    // Main tabs (Formazione / Scouting)
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        const tab = this.dataset.tab;
-        if (tab === 'formation') {
-          formationTab.classList.remove('hidden');
-          scoutingTab.classList.add('hidden');
-        } else {
-          formationTab.classList.add('hidden');
-          scoutingTab.classList.remove('hidden');
-          renderScouting(); // refresh
-        }
-      });
-    });
-
-    // Search
-    searchInput.addEventListener('input', function() { performSearch(this.value); });
-
-    // Clear selection
-    clearSelBtn.addEventListener('click', function() {
-      state.selectedPlayerId = null;
-      renderAll();
-    });
-
-    // Confirm buy
-    confirmBtn.addEventListener('click', function() {
-      const id = state.selectedPlayerId;
-      if (!id) return;
-      const player = getPlayer(id);
-      if (!player) return;
-      if (boughtIds().has(id)) { buyFeedback.textContent = 'Già acquistato!'; return; }
-      const price = Number(priceInput.value);
-      if (price <= 0 || isNaN(price)) { buyFeedback.textContent = 'Prezzo non valido'; return; }
-      if (price > maxBid()) { buyFeedback.textContent = `Supera il max bid (${maxBid()})`; return; }
-      if (usedSlots() >= state.maxRoster) { buyFeedback.textContent = 'Roster pieno!'; return; }
-      state.bought.push({
-        id: player.id,
-        name: player.name,
-        team: player.team,
-        roles: [...player.roles],
-        price: price,
-        baseQuote: player.baseQuote,
-        fvm: player.fvm || player.baseQuote,
-        percentage: state.budget ? Math.round((price/state.budget)*100) : 0
-      });
-      state.selectedPlayerId = null;
-      buyFeedback.textContent = `✅ ${player.name} acquistato!`;
-      renderAll();
-    });
-
-    // Budget, roster
-    budgetInput.addEventListener('change', function() {
-      state.budget = Number(this.value) || 500;
-      renderAll();
-    });
-    teamInput.addEventListener('change', function() {
-      state.teamName = this.value || 'Squadra';
-    });
-    minRoster.addEventListener('change', function() {
-      state.minRoster = Number(this.value) || 25;
-      if (state.minRoster > state.maxRoster) state.maxRoster = state.minRoster;
-      renderAll();
-    });
-    maxRoster.addEventListener('change', function() {
-      state.maxRoster = Number(this.value) || 30;
-      if (state.maxRoster < state.minRoster) state.minRoster = state.maxRoster;
-      renderAll();
-    });
-
-    // Panic: free agent
-    panicBtn.addEventListener('click', function() {
-      const boughtSet = boughtIds();
-      const free = state.players.filter(p => !boughtSet.has(p.id));
-      if (!free.length) { alert('Nessun free agent disponibile.'); return; }
-      const sorted = [...free].sort((a,b) => (b.fvm || b.baseQuote) - (a.fvm || a.baseQuote));
-      const msg = sorted.slice(0, 25).map(p => `${p.name} (${p.team}) [${p.roles.join('/')}] FVM ${p.fvm || p.baseQuote}`).join('\n');
-      alert('Free agent (top 25 per FVM):\n'+msg);
-    });
-
-    // Export CSV
-    exportBtn.addEventListener('click', function() {
-      if (!state.bought.length) { alert('Nessun acquisto da esportare.'); return; }
-      let csv = 'Nome,Squadra,Prezzo,FVM,Percentuale,ID\n';
-      state.bought.forEach(b => {
-        csv += `${b.name},${b.team},${b.price},${b.fvm || b.baseQuote},${b.percentage || 0},${b.id}\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'roster_mantra.csv'; a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    // Init
-    renderAll();
-  })();
-</script>
+        })();
+    </script>
 </body>
 </html>
