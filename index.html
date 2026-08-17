@@ -409,10 +409,10 @@
             border-width: 2px;
         }
 
-        /* Soccer pitch styles */
+        /* Soccer pitch styles - SIMPLIFIED CARDS */
         .pitch-wrapper {
             display: flex;
-            gap: 16px;
+            gap: 20px;
             flex-wrap: wrap;
         }
         .pitch {
@@ -423,21 +423,31 @@
                 linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.1) 48%, rgba(255, 255, 255, 0.1) 52%, transparent 52%);
             border-radius: 16px;
             border: 2px solid rgba(255, 255, 255, 0.15);
-            padding: 16px;
-            min-height: 480px;
+            padding: 20px;
             flex: 1;
-            min-width: 300px;
+            min-width: 320px;
             position: relative;
+        }
+        .pitch-formation-label {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.15);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
         }
         .bench {
             background: #0f172a;
             border-radius: 16px;
             border: 2px solid #334155;
-            padding: 12px;
-            min-width: 180px;
-            max-width: 280px;
+            padding: 14px;
+            min-width: 200px;
+            max-width: 300px;
             flex: 0 0 auto;
-            max-height: 480px;
+            max-height: 520px;
             overflow-y: auto;
         }
         .bench::-webkit-scrollbar {
@@ -466,7 +476,7 @@
             border-radius: 6px;
             padding: 4px 8px;
             margin-bottom: 4px;
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -481,7 +491,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 80px;
+            max-width: 90px;
         }
         .bench-player .b-roles {
             font-size: 0.5rem;
@@ -497,52 +507,52 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            width: 40px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
+            width: 60px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.15);
             border-radius: 2px;
         }
         .pitch-goal-top {
-            top: 10px;
+            top: 14px;
         }
         .pitch-goal-bottom {
-            bottom: 10px;
+            bottom: 14px;
         }
         .pitch-center-circle {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .pitch-center-spot {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
         }
         .pitch-row {
             display: flex;
             justify-content: center;
-            gap: 12px;
-            margin: 8px 0;
+            gap: 16px;
+            margin: 12px 0;
             position: relative;
             z-index: 2;
         }
         .pitch-role-slot {
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.45);
             backdrop-filter: blur(4px);
-            border-radius: 10px;
-            padding: 6px 8px;
-            min-width: 65px;
-            min-height: 65px;
+            border-radius: 12px;
+            padding: 8px 10px;
+            min-width: 80px;
+            min-height: 80px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -550,16 +560,19 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.2s;
             flex: 1;
-            max-width: 110px;
+            max-width: 130px;
             overflow-y: auto;
         }
+        .pitch-role-slot:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
         .pitch-role-slot .role-label {
-            font-size: 0.55rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
             color: rgba(255, 255, 255, 0.5);
             letter-spacing: 0.5px;
-            margin-bottom: 4px;
-            font-weight: 600;
+            margin-bottom: 6px;
+            font-weight: 700;
             flex-shrink: 0;
         }
         .pitch-role-slot .role-label.goalkeeper {
@@ -581,23 +594,22 @@
         .pitch-role-slot .players-container {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 4px;
             width: 100%;
         }
         .pitch-role-slot .player-card {
             background: #2d3b4f;
-            border-radius: 4px;
-            padding: 2px 4px;
+            border-radius: 6px;
+            padding: 4px 8px;
             width: 100%;
-            font-size: 0.55rem;
-            border-left: 2px solid #3b82f6;
-            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-align: center;
             flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 2px;
-            line-height: 1.3;
+            border-left: 3px solid #3b82f6;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .pitch-role-slot .player-card.multi {
             background: #3d3a1a;
@@ -605,52 +617,17 @@
             border: 1px solid #fbbf24;
         }
         .pitch-role-slot .empty-slot {
-            font-size: 0.5rem;
-            color: rgba(255, 255, 255, 0.2);
+            font-size: 0.55rem;
+            color: rgba(255, 255, 255, 0.15);
             flex-shrink: 0;
             text-align: center;
             padding: 4px 0;
         }
-        .pitch-role-slot .player-card .player-name {
-            font-weight: 500;
-            font-size: 0.5rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-            min-width: 0;
-        }
-        .pitch-role-slot .player-card .player-team {
-            font-size: 0.4rem;
-            color: #94a3b8;
-            flex-shrink: 0;
-        }
-        .pitch-role-slot .player-card .player-price {
-            color: #34d399;
-            font-weight: 600;
-            font-size: 0.45rem;
-            flex-shrink: 0;
-        }
-        .pitch-role-slot .player-card .multi-badge {
-            font-size: 0.35rem;
-            background: #fbbf24;
-            color: #0f172a;
-            padding: 0 3px;
-            border-radius: 2px;
-            flex-shrink: 0;
-            margin-left: 1px;
-        }
-        .pitch-role-slot .role-alternatives {
-            font-size: 0.4rem;
-            color: rgba(255, 255, 255, 0.3);
-            margin-top: 1px;
-            flex-shrink: 0;
-        }
         .pitch-role-slot .player-count {
-            font-size: 0.4rem;
-            color: rgba(255, 255, 255, 0.2);
+            font-size: 0.45rem;
+            color: rgba(255, 255, 255, 0.15);
             flex-shrink: 0;
-            margin-bottom: 2px;
+            margin-bottom: 3px;
         }
 
         .sync-status {
@@ -749,26 +726,21 @@
 
         @media (max-width: 768px) {
             .pitch-row {
-                gap: 4px;
-                margin: 3px 0;
+                gap: 6px;
+                margin: 6px 0;
             }
             .pitch-role-slot {
-                min-width: 40px;
-                min-height: 40px;
-                padding: 3px 4px;
+                min-width: 50px;
+                min-height: 55px;
+                padding: 4px 6px;
+                max-width: 90px;
             }
             .pitch-role-slot .player-card {
-                font-size: 0.45rem;
-                padding: 1px 3px;
-            }
-            .pitch-role-slot .player-card .player-name {
-                font-size: 0.4rem;
-            }
-            .pitch-role-slot .player-card .player-price {
-                font-size: 0.4rem;
+                font-size: 0.55rem;
+                padding: 3px 4px;
             }
             .pitch-role-slot .role-label {
-                font-size: 0.45rem;
+                font-size: 0.5rem;
             }
             .scouting-player-grid,
             .roster-player-grid {
@@ -785,6 +757,16 @@
                 max-width: 100%;
                 min-width: unset;
                 max-height: 200px;
+            }
+            .pitch-goal {
+                width: 40px;
+            }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .pitch-role-slot {
+                min-width: 65px;
+                min-height: 70px;
+                max-width: 100px;
             }
         }
     </style>
@@ -1441,14 +1423,12 @@
             function playerMatchesRole(player, roleStr) {
                 if (!player || !player.roles) return false;
 
-                // Handle slash alternatives (e.g., "M/C" matches "M" or "C")
                 if (roleStr.includes('/')) {
                     const alternatives = roleStr.split('/');
                     const playerRolesLower = player.roles.map(r => r.toLowerCase());
                     return alternatives.some(alt => playerRolesLower.includes(alt.toLowerCase()));
                 }
 
-                // Case-insensitive matching for single role
                 const roleLower = roleStr.toLowerCase();
                 return player.roles.some(r => r.toLowerCase() === roleLower);
             }
@@ -1528,6 +1508,7 @@
                         <div class="pitch-goal pitch-goal-bottom"></div>
                         <div class="pitch-center-circle"></div>
                         <div class="pitch-center-spot"></div>
+                        <div class="pitch-formation-label">${formation}</div>
                     `;
 
                 formationData.rows.forEach((row, rowIndex) => {
@@ -1553,14 +1534,9 @@
                         if (playersForRole.length > 0) {
                             playersForRole.forEach(player => {
                                 const isMulti = player.roles.length > 1;
-                                const altRoles = player.roles.filter(r => r.toLowerCase() !== roleStr
-                                    .toLowerCase()).join('+');
                                 playersHtml += `
                                         <div class="player-card ${isMulti ? 'multi' : ''}">
-                                            <span class="player-name">${player.name}</span>
-                                            <span class="player-team">${player.team}</span>
-                                            <span class="player-price">${player.price}</span>
-                                            ${isMulti ? `<span class="multi-badge">+${altRoles}</span>` : ''}
+                                            ${player.name}
                                         </div>
                                     `;
                             });
@@ -1569,7 +1545,7 @@
                         }
 
                         pitchHtml += `
-                                <div class="pitch-role-slot ${isCritical ? 'empty-critical' : ''}" style="flex: ${roleCount > 4 ? '0 0 18%' : '1'};">
+                                <div class="pitch-role-slot ${isCritical ? 'empty-critical' : ''}">
                                     <span class="role-label ${roleCategory}">${roleStr}</span>
                                     ${playersForRole.length > 0 ? `<div class="player-count">${playersForRole.length}</div>` : ''}
                                     <div class="players-container">
@@ -1591,11 +1567,9 @@
                 });
                 const pct = totalSlots ? Math.round((uniqueFilled.size / totalSlots) * 100) : 0;
 
-                // Find bench players (bought players not in formation)
                 const allFormationRoles = formationData.allRoles || [];
                 const benchPlayers = boughtWithRoles.filter(p => !playerMatchesAnyRole(p, allFormationRoles));
 
-                // Build bench HTML
                 let benchHtml = '';
                 if (benchPlayers.length > 0) {
                     benchHtml = `
@@ -1633,19 +1607,16 @@
                     return;
                 }
 
-                // Group by role
                 const roleMap = {};
                 boughtWithRoles.forEach(p => {
                     p.roles.forEach(role => {
                         if (!roleMap[role]) roleMap[role] = [];
-                        // Avoid duplicates (same player with same role)
                         if (!roleMap[role].find(r => r.id === p.id)) {
                             roleMap[role].push(p);
                         }
                     });
                 });
 
-                // Sort roles with GK first
                 const sortedRoles = Object.keys(roleMap).sort((a, b) => {
                     const gkRoles = ['Por', 'P'];
                     const aIsGK = gkRoles.some(r => r === a);
@@ -1658,7 +1629,6 @@
                 let html = '';
                 sortedRoles.forEach(role => {
                     const players = roleMap[role];
-                    // Sort by price descending
                     players.sort((a, b) => b.price - a.price);
 
                     const roleInfo = getRoleIcon(role);
