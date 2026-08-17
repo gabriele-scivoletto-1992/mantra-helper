@@ -389,6 +389,34 @@
             }
         }
 
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #1e293b;
+        }
+        .sync-status.online {
+            color: #34d399;
+        }
+        .sync-status.offline {
+            color: #f87171;
+        }
+        .sync-status .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .sync-status.online .dot {
+            background: #34d399;
+        }
+        .sync-status.offline .dot {
+            background: #f87171;
+        }
+
         @media (max-width: 768px) {
             .pitch-row {
                 gap: 4px;
@@ -428,8 +456,8 @@
                     <span id="fileLabel">Carica XLSX</span>
                     <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
                 </div>
-                <div id="syncStatus" class="text-xs text-slate-400 flex items-center gap-1">
-                    <i class="fas fa-circle text-emerald-400 text-[8px]"></i>
+                <div id="syncStatus" class="sync-status online">
+                    <span class="dot"></span>
                     <span>Online</span>
                 </div>
             </div>
@@ -542,12 +570,24 @@
     </div>
 
     <script>
-        (function() {
-            // ----- SUPABASE CLIENT CONFIGURATION -----
-            const SUPABASE_URL = 'https://nvfzvcmcmehjunbjtzko.supabase.com';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52Znp2Y21jbWVoanVuYmp0emtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyNTk1NzgsImV4cCI6MjA1NjgzNTU3OH0.S6UjL60dDq96PClqUpk8p4S8a5e8G-n8m1K2L3N4P5Q';
-            const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // ----- SUPABASE CLIENT CONFIGURATION (defined globally) -----
+        const SUPABASE_URL = 'https://nvfzvcmcmehjunbjtzko.supabase.com';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52Znp2Y21jbWVoanVuYmp0emtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyNTk1NzgsImV4cCI6MjA1NjgzNTU3OH0.S6UjL60dDq96PClqUpk8p4S8a5e8G-n8m1K2L3N4P5Q';
 
+        // Initialize Supabase client globally
+        let supabaseClient = null;
+        let supabaseReady = false;
+
+        try {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            supabaseReady = true;
+            console.log('✅ Supabase client initialized successfully');
+        } catch (error) {
+            console.error('❌ Failed to initialize Supabase client:', error);
+            supabaseReady = false;
+        }
+
+        (function() {
             // ----- STATE -----
             const state = {
                 players: [],
@@ -560,14 +600,25 @@
                 maxRoster: 30,
                 teams: [],
                 isLoading: true,
+                supabaseAvailable: supabaseReady,
             };
 
             // ----- DB SYNC FUNCTIONS -----
             async function loadStateFromDB() {
+                if (!state.supabaseAvailable) {
+                    console.warn('Supabase not available - running in offline mode');
+                    state.isLoading = false;
+                    renderAll();
+                    return;
+                }
+
                 state.isLoading = true;
                 try {
                     // 1. Config
-                    const { data: config } = await supabase.from('config').select('*').single();
+                    const { data: config, error: configError } = await supabaseClient.from('config').select('*').single();
+                    if (configError && configError.code !== 'PGRST116') {
+                        console.warn('Config not found, using defaults');
+                    }
                     if (config) {
                         state.budget = config.budget;
                         state.teamName = config.team_name;
@@ -582,7 +633,7 @@
                     }
 
                     // 2. Players
-                    const { data: dbPlayers } = await supabase.from('players').select('*');
+                    const { data: dbPlayers } = await supabaseClient.from('players').select('*');
                     if (dbPlayers && dbPlayers.length > 0) {
                         state.players = dbPlayers.map(p => ({
                             id: p.id,
@@ -595,13 +646,13 @@
                     }
 
                     // 3. Teams
-                    const { data: dbTeams } = await supabase.from('teams').select('*');
+                    const { data: dbTeams } = await supabaseClient.from('teams').select('*');
                     if (dbTeams) {
                         state.teams = dbTeams.map(t => ({ id: t.id, name: t.name, players: [] }));
                     }
 
                     // 4. Purchases with player details
-                    const { data: dbPurchases } = await supabase.from('purchases').select('*, players(*)');
+                    const { data: dbPurchases } = await supabaseClient.from('purchases').select('*, players(*)');
                     if (dbPurchases) {
                         state.bought = [];
                         state.teams.forEach(t => t.players = []);
@@ -629,17 +680,18 @@
                     }
 
                     renderAll();
-                    document.getElementById('syncStatus').innerHTML = '<i class="fas fa-circle text-emerald-400 text-[8px]"></i><span>Online</span>';
+                    updateSyncStatus(true);
                 } catch (err) {
                     console.error("Errore nel caricamento da Supabase:", err);
-                    document.getElementById('syncStatus').innerHTML = '<i class="fas fa-circle text-red-400 text-[8px]"></i><span>Offline</span>';
+                    updateSyncStatus(false);
                 }
                 state.isLoading = false;
             }
 
             async function saveConfig() {
+                if (!state.supabaseAvailable) return;
                 try {
-                    await supabase.from('config').update({
+                    await supabaseClient.from('config').update({
                         budget: state.budget,
                         team_name: state.teamName,
                         min_roster: state.minRoster,
@@ -650,10 +702,17 @@
             }
 
             async function syncPlayersToDB(parsedPlayers) {
+                if (!state.supabaseAvailable) {
+                    console.warn('Supabase not available - players saved locally only');
+                    state.players = parsedPlayers;
+                    renderAll();
+                    return;
+                }
+
                 try {
                     // Clear existing data
-                    await supabase.from('purchases').delete().neq('id', 0);
-                    await supabase.from('players').delete().neq('id', 0);
+                    await supabaseClient.from('purchases').delete().neq('id', 0);
+                    await supabaseClient.from('players').delete().neq('id', 0);
 
                     const rows = parsedPlayers.map(p => ({
                         id: p.id,
@@ -664,9 +723,20 @@
                         fvm: p.fvm
                     }));
 
-                    const { error } = await supabase.from('players').insert(rows);
+                    const { error } = await supabaseClient.from('players').insert(rows);
                     if (error) console.error("Errore salvataggio giocatori:", error);
                 } catch (e) { console.error('Sync players error:', e); }
+            }
+
+            function updateSyncStatus(online) {
+                const statusEl = document.getElementById('syncStatus');
+                if (online) {
+                    statusEl.className = 'sync-status online';
+                    statusEl.innerHTML = '<span class="dot"></span><span>Online</span>';
+                } else {
+                    statusEl.className = 'sync-status offline';
+                    statusEl.innerHTML = '<span class="dot"></span><span>Offline</span>';
+                }
             }
 
             // ----- OFFICIAL FORMATIONS -----
@@ -881,9 +951,16 @@
                 document.querySelectorAll('.feed-item .undo').forEach(el => {
                     el.addEventListener('click', async function() {
                         const dbId = parseInt(this.dataset.dbId);
-                        if (dbId) {
-                            await supabase.from('purchases').delete().eq('id', dbId);
+                        if (dbId && state.supabaseAvailable) {
+                            await supabaseClient.from('purchases').delete().eq('id', dbId);
                             await loadStateFromDB();
+                        } else if (dbId) {
+                            // Offline mode - remove from local state
+                            const idx = state.bought.findIndex(b => b.dbPurchaseId === dbId);
+                            if (idx > -1) {
+                                state.bought.splice(idx, 1);
+                                renderAll();
+                            }
                         }
                     });
                 });
@@ -1061,10 +1138,18 @@
                         const id = parseInt(this.dataset.id);
                         const name = this.dataset.name;
                         if (confirm(`Eliminare la squadra "${name}"?`)) {
-                            // Delete all purchases for this team first
-                            await supabase.from('purchases').delete().eq('team_id', id);
-                            await supabase.from('teams').delete().eq('id', id);
-                            await loadStateFromDB();
+                            if (state.supabaseAvailable) {
+                                await supabaseClient.from('purchases').delete().eq('team_id', id);
+                                await supabaseClient.from('teams').delete().eq('id', id);
+                                await loadStateFromDB();
+                            } else {
+                                // Offline mode - remove from local state
+                                const idx = state.teams.findIndex(t => t.id === id);
+                                if (idx > -1) {
+                                    state.teams.splice(idx, 1);
+                                    renderAll();
+                                }
+                            }
                         }
                     });
                 });
@@ -1072,9 +1157,19 @@
                 document.querySelectorAll('.remove-player').forEach(btn => {
                     btn.addEventListener('click', async function() {
                         const dbId = parseInt(this.dataset.dbId);
-                        if (dbId) {
-                            await supabase.from('purchases').delete().eq('id', dbId);
+                        if (dbId && state.supabaseAvailable) {
+                            await supabaseClient.from('purchases').delete().eq('id', dbId);
                             await loadStateFromDB();
+                        } else if (dbId) {
+                            // Offline mode - remove from local state
+                            for (let team of state.teams) {
+                                const idx = team.players.findIndex(p => p.dbPurchaseId === dbId);
+                                if (idx > -1) {
+                                    team.players.splice(idx, 1);
+                                    renderAll();
+                                    break;
+                                }
+                            }
                         }
                     });
                 });
@@ -1177,8 +1272,16 @@
                     const data = new Uint8Array(e.target.result);
                     const parsed = parseXLSX(data);
                     if (parsed.length) {
-                        await syncPlayersToDB(parsed);
-                        await loadStateFromDB();
+                        if (state.supabaseAvailable) {
+                            await syncPlayersToDB(parsed);
+                            await loadStateFromDB();
+                        } else {
+                            // Offline mode - store locally
+                            state.players = parsed;
+                            state.bought = [];
+                            state.teams = [];
+                            renderAll();
+                        }
                         document.getElementById('fileLabel').textContent = file.name + ' ✅';
                     } else {
                         alert('Nessun giocatore valido trovato.');
@@ -1194,10 +1297,19 @@
                 if (state.teams.some(t => t.name.toLowerCase() === name.toLowerCase())) {
                     return alert('Squadra già esistente');
                 }
-                const { data, error } = await supabase.from('teams').insert([{ name }]).select().single();
-                if (error) return alert('Errore creazione squadra: ' + error.message);
 
-                state.teams.push({ id: data.id, name: data.name, players: [] });
+                if (state.supabaseAvailable) {
+                    const { data, error } = await supabaseClient.from('teams').insert([{ name }]).select().single();
+                    if (error) return alert('Errore creazione squadra: ' + error.message);
+                    state.teams.push({ id: data.id, name: data.name, players: [] });
+                } else {
+                    // Offline mode - create local team
+                    state.teams.push({
+                        id: Date.now(),
+                        name: name,
+                        players: []
+                    });
+                }
                 newTeamName.value = '';
                 renderAll();
             }
@@ -1222,7 +1334,7 @@
                 document.querySelectorAll('.formation-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 state.formation = tab.dataset.f;
-                saveConfig();
+                if (state.supabaseAvailable) saveConfig();
                 renderAll();
             });
 
@@ -1279,38 +1391,61 @@
                     return buyFeedback.textContent = 'Scelta non valida';
                 }
 
-                const { error } = await supabase.from('purchases').insert([{
-                    player_id: player.id,
-                    buyer_team_type: buyerType,
-                    team_id: teamId,
-                    price: price
-                }]);
-
-                if (error) return alert('Errore salvataggio acquisto: ' + error.message);
+                if (state.supabaseAvailable) {
+                    const { error } = await supabaseClient.from('purchases').insert([{
+                        player_id: player.id,
+                        buyer_team_type: buyerType,
+                        team_id: teamId,
+                        price: price
+                    }]);
+                    if (error) return alert('Errore salvataggio acquisto: ' + error.message);
+                } else {
+                    // Offline mode - add locally
+                    const playerObj = {
+                        id: player.id,
+                        name: player.name,
+                        team: player.team,
+                        roles: [...player.roles],
+                        price: price,
+                        baseQuote: player.baseQuote,
+                        fvm: player.fvm || player.baseQuote,
+                        dbPurchaseId: Date.now()
+                    };
+                    if (buyerType === 'MINE') {
+                        state.bought.push(playerObj);
+                    } else if (teamId) {
+                        const targetTeam = state.teams.find(t => t.id === teamId);
+                        if (targetTeam) targetTeam.players.push(playerObj);
+                    }
+                }
 
                 state.selectedPlayerId = null;
-                await loadStateFromDB();
+                if (state.supabaseAvailable) {
+                    await loadStateFromDB();
+                } else {
+                    renderAll();
+                }
             });
 
             budgetInput.addEventListener('change', function() {
                 state.budget = Number(this.value) || 500;
-                saveConfig();
+                if (state.supabaseAvailable) saveConfig();
                 renderAll();
             });
             teamInput.addEventListener('change', function() {
                 state.teamName = this.value || 'La Mia Squadra';
-                saveConfig();
+                if (state.supabaseAvailable) saveConfig();
             });
             minRoster.addEventListener('change', function() {
                 state.minRoster = Number(this.value) || 25;
                 if (state.minRoster > state.maxRoster) state.maxRoster = state.minRoster;
-                saveConfig();
+                if (state.supabaseAvailable) saveConfig();
                 renderAll();
             });
             maxRoster.addEventListener('change', function() {
                 state.maxRoster = Number(this.value) || 30;
                 if (state.maxRoster < state.minRoster) state.minRoster = state.maxRoster;
-                saveConfig();
+                if (state.supabaseAvailable) saveConfig();
                 renderAll();
             });
 
@@ -1344,24 +1479,36 @@
 
             // ----- REAL-TIME SUBSCRIPTION -----
             function setupRealtimeSubscription() {
-                const channel = supabase
-                    .channel('db-changes')
-                    .on('postgres_changes', {
-                        event: '*',
-                        schema: 'public',
-                    }, () => {
-                        // Reload state on any database change
-                        loadStateFromDB();
-                    })
-                    .subscribe();
+                if (!state.supabaseAvailable) return;
 
-                return channel;
+                try {
+                    const channel = supabaseClient
+                        .channel('db-changes')
+                        .on('postgres_changes', {
+                            event: '*',
+                            schema: 'public',
+                        }, () => {
+                            // Reload state on any database change
+                            loadStateFromDB();
+                        })
+                        .subscribe();
+
+                    return channel;
+                } catch (e) {
+                    console.warn('Realtime subscription not available:', e);
+                }
             }
 
-            // Init App from Supabase DB and setup realtime
-            loadStateFromDB().then(() => {
-                setupRealtimeSubscription();
-            });
+            // Init App
+            if (state.supabaseAvailable) {
+                loadStateFromDB().then(() => {
+                    setupRealtimeSubscription();
+                });
+            } else {
+                state.isLoading = false;
+                renderAll();
+                updateSyncStatus(false);
+            }
         })();
     </script>
 </body>
