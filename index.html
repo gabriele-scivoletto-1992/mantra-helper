@@ -405,6 +405,20 @@
             color: #e2e8f0;
         }
 
+        .budget-input-sm {
+            width: 70px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 4px 6px;
+            color: #e2e8f0;
+            font-size: 0.8rem;
+        }
+        .budget-input-sm:focus {
+            outline: none;
+            border-color: #059669;
+        }
+
         @media (max-width: 768px) {
             .pitch-row {
                 gap: 4px;
@@ -544,8 +558,9 @@
                 <div id="teamsTab" class="hidden card p-3">
                     <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
                         <span class="font-semibold">👥 Gestione Squadre</span>
-                        <div class="flex gap-2">
-                            <input id="newTeamName" type="text" placeholder="Nome squadra" class="bg-slate-800 border border-slate-700 rounded px-3 py-1 text-sm">
+                        <div class="flex gap-2 items-center flex-wrap">
+                            <input id="newTeamName" type="text" placeholder="Nome squadra" class="bg-slate-800 border border-slate-700 rounded px-3 py-1 text-sm w-40">
+                            <input id="newTeamBudget" type="number" placeholder="Budget" value="500" class="budget-input-sm">
                             <button id="addTeamBtn" class="btn-emerald text-sm px-3 py-1"><i class="fas fa-plus mr-1"></i> Aggiungi</button>
                         </div>
                     </div>
@@ -590,7 +605,7 @@
                 teamName: 'La Mia Squadra',
                 minRoster: 25,
                 maxRoster: 30,
-                teams: [],
+                teams: [], // { id, name, budget, players: [] }
                 isLoading: true,
                 supabaseAvailable: supabaseReady,
                 tablesExist: false,
@@ -638,12 +653,13 @@
                             `
                         });
 
-                        // Create teams table
+                        // Create teams table with budget column
                         await supabaseClient.rpc('exec_sql', {
                             sql: `
                                 CREATE TABLE IF NOT EXISTS teams (
                                     id SERIAL PRIMARY KEY,
-                                    name TEXT NOT NULL UNIQUE
+                                    name TEXT NOT NULL UNIQUE,
+                                    budget INTEGER DEFAULT 500
                                 );
                             `
                         });
@@ -731,13 +747,13 @@
                         }));
                     }
 
-                    // 3. Teams
+                    // 3. Teams with budget
                     const { data: dbTeams, error: teamsError } = await supabaseClient.from('teams').select('*');
                     if (teamsError) {
                         console.warn('Error loading teams:', teamsError);
                     }
                     if (dbTeams) {
-                        state.teams = dbTeams.map(t => ({ id: t.id, name: t.name, players: [] }));
+                        state.teams = dbTeams.map(t => ({ id: t.id, name: t.name, budget: t.budget || 500, players: [] }));
                     }
 
                     // Update team dropdown
@@ -791,7 +807,7 @@
                 state.teams.forEach(team => {
                     const option = document.createElement('option');
                     option.value = team.id;
-                    option.textContent = team.name;
+                    option.textContent = `${team.name} (${team.budget || 500}€)`;
                     select.appendChild(option);
                 });
             }
@@ -991,6 +1007,7 @@
             const teamsTab = $('teamsTab');
             const teamsContainer = $('teamsContainer');
             const newTeamName = $('newTeamName');
+            const newTeamBudget = $('newTeamBudget');
             const addTeamBtn = $('addTeamBtn');
 
             // ----- HELPERS -----
@@ -1214,13 +1231,17 @@
                 } else {
                     state.teams.forEach((team) => {
                         const totalSpent = team.players.reduce((sum, p) => sum + p.price, 0);
+                        const remaining = (team.budget || 500) - totalSpent;
+                        const pctUsed = team.budget ? Math.round((totalSpent / team.budget) * 100) : 0;
+
                         html += `
                             <div class="card p-3 border border-slate-700">
                                 <div class="flex justify-between items-center mb-2">
                                     <div>
                                         <span class="font-semibold text-lg">${team.name}</span>
                                         <span class="text-xs text-slate-400 ml-2">${team.players.length} giocatori</span>
-                                        <span class="text-xs text-emerald-400 ml-2">Speso: ${totalSpent}</span>
+                                        <span class="text-xs text-emerald-400 ml-2">Speso: ${totalSpent}€ / ${team.budget || 500}€ (${pctUsed}%)</span>
+                                        <span class="text-xs ${remaining >= 0 ? 'text-emerald-400' : 'text-red-400'} ml-2">Rimasti: ${remaining}€</span>
                                     </div>
                                     <button class="btn-danger text-xs delete-team" data-id="${team.id}" data-name="${team.name}"><i class="fas fa-trash"></i> Elimina</button>
                                 </div>
@@ -1228,7 +1249,7 @@
                                     ${team.players.map(p => `
                                         <div class="text-xs bg-slate-800 rounded p-1 flex justify-between items-center">
                                             <span>${p.name}</span>
-                                            <span class="text-emerald-300">${p.price}</span>
+                                            <span class="text-emerald-300">${p.price}€</span>
                                             <button class="text-red-400 text-xs remove-player" data-db-id="${p.dbPurchaseId}"><i class="fas fa-times"></i></button>
                                         </div>
                                     `).join('')}
@@ -1402,18 +1423,23 @@
                     return alert('Squadra già esistente');
                 }
 
+                const budget = parseInt(newTeamBudget.value) || 500;
+                if (budget <= 0) return alert('Il budget deve essere maggiore di 0');
+
                 if (state.supabaseAvailable && supabaseClient && state.tablesExist) {
-                    const { data, error } = await supabaseClient.from('teams').insert([{ name }]).select().single();
+                    const { data, error } = await supabaseClient.from('teams').insert([{ name, budget }]).select().single();
                     if (error) return alert('Errore creazione squadra: ' + error.message);
-                    state.teams.push({ id: data.id, name: data.name, players: [] });
+                    state.teams.push({ id: data.id, name: data.name, budget: data.budget, players: [] });
                 } else {
                     state.teams.push({
                         id: Date.now(),
                         name: name,
+                        budget: budget,
                         players: []
                     });
                 }
                 newTeamName.value = '';
+                newTeamBudget.value = '500';
                 renderAll();
             }
 
@@ -1482,8 +1508,14 @@
                 } else {
                     buyerType = 'OTHER';
                     teamId = parseInt(selectedTeamValue);
-                    if (!state.teams.find(t => t.id === teamId)) {
-                        return buyFeedback.textContent = 'Squadra non valida';
+                    const targetTeam = state.teams.find(t => t.id === teamId);
+                    if (!targetTeam) return buyFeedback.textContent = 'Squadra non valida';
+
+                    // Check if team has enough budget
+                    const totalSpent = targetTeam.players.reduce((sum, p) => sum + p.price, 0);
+                    if (totalSpent + price > targetTeam.budget) {
+                        return buyFeedback.textContent =
+                            `Budget insufficiente per ${targetTeam.name}! (${targetTeam.budget - totalSpent}€ rimasti)`;
                     }
                 }
 
@@ -1548,6 +1580,9 @@
 
             addTeamBtn.addEventListener('click', addTeam);
             newTeamName.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addTeam();
+            });
+            newTeamBudget.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') addTeam();
             });
 
