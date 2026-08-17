@@ -11,6 +11,9 @@
     <!-- SheetJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
     </script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
     <style>
         body {
             background: #0f172a;
@@ -371,6 +374,21 @@
             color: white;
         }
 
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: #34d399;
+            animation: spin 0.8s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         @media (max-width: 768px) {
             .pitch-row {
                 gap: 4px;
@@ -409,6 +427,10 @@
                     <i class="fas fa-file-upload text-emerald-400"></i>
                     <span id="fileLabel">Carica XLSX</span>
                     <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+                </div>
+                <div id="syncStatus" class="text-xs text-slate-400 flex items-center gap-1">
+                    <i class="fas fa-circle text-emerald-400 text-[8px]"></i>
+                    <span>Online</span>
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-3 text-sm">
@@ -521,6 +543,11 @@
 
     <script>
         (function() {
+            // ----- SUPABASE CLIENT CONFIGURATION -----
+            const SUPABASE_URL = 'https://nvfzvcmcmehjunbjtzko.supabase.com';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52Znp2Y21jbWVoanVuYmp0emtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyNTk1NzgsImV4cCI6MjA1NjgzNTU3OH0.S6UjL60dDq96PClqUpk8p4S8a5e8G-n8m1K2L3N4P5Q';
+            const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
             // ----- STATE -----
             const state = {
                 players: [],
@@ -532,8 +559,115 @@
                 minRoster: 25,
                 maxRoster: 30,
                 teams: [],
-                nextTeamId: 1,
+                isLoading: true,
             };
+
+            // ----- DB SYNC FUNCTIONS -----
+            async function loadStateFromDB() {
+                state.isLoading = true;
+                try {
+                    // 1. Config
+                    const { data: config } = await supabase.from('config').select('*').single();
+                    if (config) {
+                        state.budget = config.budget;
+                        state.teamName = config.team_name;
+                        state.minRoster = config.min_roster;
+                        state.maxRoster = config.max_roster;
+                        state.formation = config.formation;
+
+                        budgetInput.value = state.budget;
+                        teamInput.value = state.teamName;
+                        minRoster.value = state.minRoster;
+                        maxRoster.value = state.maxRoster;
+                    }
+
+                    // 2. Players
+                    const { data: dbPlayers } = await supabase.from('players').select('*');
+                    if (dbPlayers && dbPlayers.length > 0) {
+                        state.players = dbPlayers.map(p => ({
+                            id: p.id,
+                            name: p.name,
+                            team: p.team,
+                            roles: p.roles,
+                            baseQuote: p.base_quote,
+                            fvm: p.fvm
+                        }));
+                    }
+
+                    // 3. Teams
+                    const { data: dbTeams } = await supabase.from('teams').select('*');
+                    if (dbTeams) {
+                        state.teams = dbTeams.map(t => ({ id: t.id, name: t.name, players: [] }));
+                    }
+
+                    // 4. Purchases with player details
+                    const { data: dbPurchases } = await supabase.from('purchases').select('*, players(*)');
+                    if (dbPurchases) {
+                        state.bought = [];
+                        state.teams.forEach(t => t.players = []);
+
+                        dbPurchases.forEach(p => {
+                            if (!p.players) return;
+                            const playerObj = {
+                                id: p.players.id,
+                                name: p.players.name,
+                                team: p.players.team,
+                                roles: p.players.roles,
+                                price: p.price,
+                                baseQuote: p.players.base_quote,
+                                fvm: p.players.fvm,
+                                dbPurchaseId: p.id
+                            };
+
+                            if (p.buyer_team_type === 'MINE') {
+                                state.bought.push(playerObj);
+                            } else if (p.buyer_team_type === 'OTHER' && p.team_id) {
+                                const targetTeam = state.teams.find(t => t.id === p.team_id);
+                                if (targetTeam) targetTeam.players.push(playerObj);
+                            }
+                        });
+                    }
+
+                    renderAll();
+                    document.getElementById('syncStatus').innerHTML = '<i class="fas fa-circle text-emerald-400 text-[8px]"></i><span>Online</span>';
+                } catch (err) {
+                    console.error("Errore nel caricamento da Supabase:", err);
+                    document.getElementById('syncStatus').innerHTML = '<i class="fas fa-circle text-red-400 text-[8px]"></i><span>Offline</span>';
+                }
+                state.isLoading = false;
+            }
+
+            async function saveConfig() {
+                try {
+                    await supabase.from('config').update({
+                        budget: state.budget,
+                        team_name: state.teamName,
+                        min_roster: state.minRoster,
+                        max_roster: state.maxRoster,
+                        formation: state.formation
+                    }).eq('id', 1);
+                } catch (e) { console.error('Save config error:', e); }
+            }
+
+            async function syncPlayersToDB(parsedPlayers) {
+                try {
+                    // Clear existing data
+                    await supabase.from('purchases').delete().neq('id', 0);
+                    await supabase.from('players').delete().neq('id', 0);
+
+                    const rows = parsedPlayers.map(p => ({
+                        id: p.id,
+                        name: p.name,
+                        team: p.team,
+                        roles: p.roles,
+                        base_quote: p.baseQuote,
+                        fvm: p.fvm
+                    }));
+
+                    const { error } = await supabase.from('players').insert(rows);
+                    if (error) console.error("Errore salvataggio giocatori:", error);
+                } catch (e) { console.error('Sync players error:', e); }
+            }
 
             // ----- OFFICIAL FORMATIONS -----
             const FORMATIONS = {
@@ -731,24 +865,25 @@
                 kpiSpent.textContent = pct + '%';
                 kpiSlots.textContent = `${used}/${maxSlots}`;
                 kpiMaxBid.textContent = maxBid();
-                confirmBtn.disabled = !state.selectedPlayerId || !priceInput.value || Number(priceInput.value) > maxBid() ||
+                confirmBtn.disabled = state.isLoading || !state.selectedPlayerId || !priceInput.value || Number(priceInput
+                    .value) > maxBid() ||
                     Number(priceInput.value) <= 0;
             }
 
             function renderFeed() {
-                purchaseFeed.innerHTML = state.bought.map((b, idx) => `
+                purchaseFeed.innerHTML = state.bought.map((b) => `
                         <div class="feed-item flex justify-between items-center">
                             <span><strong>${b.name}</strong> (${b.team}) <span class="text-emerald-300">${b.price}</span> <span class="text-xs text-slate-400">${b.roles.join('/')}</span></span>
-                            <span class="undo" data-idx="${idx}"><i class="fas fa-undo-alt"></i></span>
+                            <span class="undo" data-db-id="${b.dbPurchaseId}"><i class="fas fa-undo-alt"></i></span>
                         </div>
                     `).join('');
                 feedCount.textContent = state.bought.length;
                 document.querySelectorAll('.feed-item .undo').forEach(el => {
-                    el.addEventListener('click', function() {
-                        const idx = parseInt(this.dataset.idx);
-                        if (!isNaN(idx) && idx >= 0 && idx < state.bought.length) {
-                            state.bought.splice(idx, 1);
-                            renderAll();
+                    el.addEventListener('click', async function() {
+                        const dbId = parseInt(this.dataset.dbId);
+                        if (dbId) {
+                            await supabase.from('purchases').delete().eq('id', dbId);
+                            await loadStateFromDB();
                         }
                     });
                 });
@@ -764,11 +899,8 @@
 
                 const boughtWithRoles = state.bought.filter(b => b.roles && b.roles.length > 0);
                 const totalSlots = formationData.rows.reduce((acc, row) => acc + row.roles.length, 0);
-                let filledSlots = 0;
 
-                let html = '';
-
-                html += `
+                let html = `
                         <div class="pitch-goal pitch-goal-top"></div>
                         <div class="pitch-goal pitch-goal-bottom"></div>
                         <div class="pitch-center-circle"></div>
@@ -779,28 +911,24 @@
                     html += `<div class="pitch-row">`;
                     const roleCount = row.roles.length;
 
-                    row.roles.forEach((roleStr, roleIndex) => {
+                    row.roles.forEach((roleStr) => {
                         const playersForRole = boughtWithRoles.filter(b => playerMatchesRole(b, roleStr));
                         const hasPlayer = playersForRole.length > 0;
                         const isCritical = rowIndex > 0 && !hasPlayer && usedSlots() / state.maxRoster > 0.6;
 
-                        if (hasPlayer) filledSlots++;
-
                         let roleCategory = '';
                         if (['P'].includes(roleStr)) roleCategory = 'goalkeeper';
-                        else if (['DD', 'DS', 'DC', 'DC/B', 'B'].includes(roleStr) || roleStr.includes('/') && roleStr
-                            .split('/').some(r => ['DD', 'DS', 'DC', 'B'].includes(r))) roleCategory = 'defense';
-                        else if (['M', 'C', 'E', 'T', 'M/C', 'C/T', 'T/A', 'T/A/PC'].includes(roleStr) || roleStr.includes(
-                                '/') && roleStr.split('/').some(r => ['M', 'C', 'E', 'T'].includes(r)))
+                        else if (['DD', 'DS', 'DC', 'DC/B', 'B'].includes(roleStr) || roleStr.includes('/') &&
+                            roleStr.split('/').some(r => ['DD', 'DS', 'DC', 'B'].includes(r))) roleCategory =
+                            'defense';
+                        else if (['M', 'C', 'E', 'T', 'M/C', 'C/T', 'T/A', 'T/A/PC'].includes(roleStr) || roleStr
+                            .includes('/') && roleStr.split('/').some(r => ['M', 'C', 'E', 'T'].includes(r)))
                             roleCategory = 'midfield';
-                        else if (['W', 'A', 'PC', 'W/A', 'A/PC', 'E/W', 'W/T'].includes(roleStr) || roleStr.includes(
-                                '/') && roleStr.split('/').some(r => ['W', 'A', 'PC'].includes(r)))
+                        else if (['W', 'A', 'PC', 'W/A', 'A/PC', 'E/W', 'W/T'].includes(roleStr) || roleStr
+                            .includes('/') && roleStr.split('/').some(r => ['W', 'A', 'PC'].includes(r)))
                             roleCategory = 'attack';
 
-                        let alternatives = '';
-                        if (roleStr.includes('/')) {
-                            alternatives = roleStr.split('/').join(' / ');
-                        }
+                        let alternatives = roleStr.includes('/') ? roleStr.split('/').join(' / ') : '';
 
                         let playersHtml = '';
                         if (playersForRole.length > 0) {
@@ -901,7 +1029,7 @@
                 if (state.teams.length === 0) {
                     html = '<div class="empty-state">Nessuna squadra creata</div>';
                 } else {
-                    state.teams.forEach((team, idx) => {
+                    state.teams.forEach((team) => {
                         const totalSpent = team.players.reduce((sum, p) => sum + p.price, 0);
                         html += `
                             <div class="card p-3 border border-slate-700">
@@ -911,14 +1039,14 @@
                                         <span class="text-xs text-slate-400 ml-2">${team.players.length} giocatori</span>
                                         <span class="text-xs text-emerald-400 ml-2">Speso: ${totalSpent}</span>
                                     </div>
-                                    <button class="btn-danger text-xs delete-team" data-idx="${idx}"><i class="fas fa-trash"></i> Elimina</button>
+                                    <button class="btn-danger text-xs delete-team" data-id="${team.id}" data-name="${team.name}"><i class="fas fa-trash"></i> Elimina</button>
                                 </div>
                                 <div class="grid grid-cols-2 md:grid-cols-3 gap-1 max-h-40 overflow-y-auto">
                                     ${team.players.map(p => `
                                         <div class="text-xs bg-slate-800 rounded p-1 flex justify-between items-center">
                                             <span>${p.name}</span>
                                             <span class="text-emerald-300">${p.price}</span>
-                                            <button class="text-red-400 text-xs remove-player" data-team-idx="${idx}" data-player-id="${p.id}"><i class="fas fa-times"></i></button>
+                                            <button class="text-red-400 text-xs remove-player" data-db-id="${p.dbPurchaseId}"><i class="fas fa-times"></i></button>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -929,24 +1057,24 @@
                 teamsContainer.innerHTML = html;
 
                 document.querySelectorAll('.delete-team').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const idx = parseInt(this.dataset.idx);
-                        if (confirm(`Eliminare la squadra "${state.teams[idx].name}"?`)) {
-                            state.teams.splice(idx, 1);
-                            renderAll();
+                    btn.addEventListener('click', async function() {
+                        const id = parseInt(this.dataset.id);
+                        const name = this.dataset.name;
+                        if (confirm(`Eliminare la squadra "${name}"?`)) {
+                            // Delete all purchases for this team first
+                            await supabase.from('purchases').delete().eq('team_id', id);
+                            await supabase.from('teams').delete().eq('id', id);
+                            await loadStateFromDB();
                         }
                     });
                 });
 
                 document.querySelectorAll('.remove-player').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        const teamIdx = parseInt(this.dataset.teamIdx);
-                        const playerId = parseInt(this.dataset.playerId);
-                        const team = state.teams[teamIdx];
-                        const playerIdx = team.players.findIndex(p => p.id === playerId);
-                        if (playerIdx > -1) {
-                            team.players.splice(playerIdx, 1);
-                            renderAll();
+                    btn.addEventListener('click', async function() {
+                        const dbId = parseInt(this.dataset.dbId);
+                        if (dbId) {
+                            await supabase.from('purchases').delete().eq('id', dbId);
+                            await loadStateFromDB();
                         }
                     });
                 });
@@ -1015,8 +1143,8 @@
                     const nameIdx = headers.indexOf('Nome');
                     const teamIdx = headers.indexOf('Squadra');
                     const rmIdx = headers.indexOf('RM');
-                    const qtIdx = headers.indexOf('Qt.A M') > -1 ? headers.indexOf('Qt.A M') : (headers.indexOf('Qt.I M') > -1 ?
-                        headers.indexOf('Qt.I M') : headers.indexOf('FVM M'));
+                    const qtIdx = headers.indexOf('Qt.A M') > -1 ? headers.indexOf('Qt.A M') : (headers.indexOf('Qt.I M') >
+                        -1 ? headers.indexOf('Qt.I M') : headers.indexOf('FVM M'));
                     const fvmIdx = headers.indexOf('FVM M') > -1 ? headers.indexOf('FVM M') : (headers.indexOf('FVM') > -1 ?
                         headers.indexOf('FVM') : -1);
                     if (idIdx === -1 || nameIdx === -1 || teamIdx === -1 || rmIdx === -1 || qtIdx === -1) {
@@ -1045,15 +1173,12 @@
             // ----- LOAD FILE -----
             function loadFile(file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = async function(e) {
                     const data = new Uint8Array(e.target.result);
                     const parsed = parseXLSX(data);
                     if (parsed.length) {
-                        state.players = parsed;
-                        state.bought = [];
-                        state.teams = [];
-                        state.selectedPlayerId = null;
-                        renderAll();
+                        await syncPlayersToDB(parsed);
+                        await loadStateFromDB();
                         document.getElementById('fileLabel').textContent = file.name + ' ✅';
                     } else {
                         alert('Nessun giocatore valido trovato.');
@@ -1063,29 +1188,27 @@
             }
 
             // ----- ADD TEAM -----
-            function addTeam() {
+            async function addTeam() {
                 const name = newTeamName.value.trim();
-                if (!name) { alert('Inserisci un nome per la squadra'); return; }
+                if (!name) return alert('Inserisci un nome per la squadra');
                 if (state.teams.some(t => t.name.toLowerCase() === name.toLowerCase())) {
-                    alert('Squadra già esistente');
-                    return;
+                    return alert('Squadra già esistente');
                 }
-                state.teams.push({
-                    id: state.nextTeamId++,
-                    name: name,
-                    players: []
-                });
+                const { data, error } = await supabase.from('teams').insert([{ name }]).select().single();
+                if (error) return alert('Errore creazione squadra: ' + error.message);
+
+                state.teams.push({ id: data.id, name: data.name, players: [] });
                 newTeamName.value = '';
                 renderAll();
             }
 
             // ----- EVENT BINDINGS -----
-            fileInput.addEventListener('change', function(e) {
+            fileInput.addEventListener('change', function() {
                 if (this.files.length) loadFile(this.files[0]);
             });
             dropzone.addEventListener('dragover', e => { e.preventDefault();
                 dropzone.classList.add('dragover'); });
-            dropzone.addEventListener('dragleave', e => { dropzone.classList.remove('dragover'); });
+            dropzone.addEventListener('dragleave', () => { dropzone.classList.remove('dragover'); });
             dropzone.addEventListener('drop', e => {
                 e.preventDefault();
                 dropzone.classList.remove('dragover');
@@ -1099,6 +1222,7 @@
                 document.querySelectorAll('.formation-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 state.formation = tab.dataset.f;
+                saveConfig();
                 renderAll();
             });
 
@@ -1122,102 +1246,71 @@
                 renderAll();
             });
 
-            // ----- FIXED CONFIRM BUY BUTTON -----
-            confirmBtn.addEventListener('click', function() {
+            confirmBtn.addEventListener('click', async function() {
                 const id = state.selectedPlayerId;
-                if (!id) {
-                    buyFeedback.textContent = 'Nessun giocatore selezionato';
-                    return;
-                }
+                if (!id) return buyFeedback.textContent = 'Nessun giocatore selezionato';
                 const player = getPlayer(id);
-                if (!player) {
-                    buyFeedback.textContent = 'Giocatore non trovato';
-                    return;
-                }
-                if (allBoughtIds().has(id)) {
-                    buyFeedback.textContent = 'Già acquistato!';
-                    return;
-                }
-                const price = Number(priceInput.value);
-                if (price <= 0 || isNaN(price)) {
-                    buyFeedback.textContent = 'Prezzo non valido';
-                    return;
-                }
-                if (price > maxBid()) {
-                    buyFeedback.textContent = `Supera il max bid (${maxBid()})`;
-                    return;
-                }
-                if (usedSlots() >= state.maxRoster) {
-                    buyFeedback.textContent = 'Roster pieno!';
-                    return;
-                }
+                if (!player) return buyFeedback.textContent = 'Giocatore non trovato';
+                if (allBoughtIds().has(id)) return buyFeedback.textContent = 'Già acquistato!';
 
-                // Build team options for prompt
+                const price = Number(priceInput.value);
+                if (price <= 0 || isNaN(price)) return buyFeedback.textContent = 'Prezzo non valido';
+                if (price > maxBid()) return buyFeedback.textContent = `Supera il max bid (${maxBid()})`;
+                if (usedSlots() >= state.maxRoster) return buyFeedback.textContent = 'Roster pieno!';
+
                 let teamOptions = state.teams.map((t, i) => `${i+2}. ${t.name}`).join('\n');
                 let promptMsg = `Assegna a quale squadra?\n1. La mia squadra (${state.teamName})`;
-                if (teamOptions) {
-                    promptMsg += `\n${teamOptions}`;
-                }
+                if (teamOptions) promptMsg += `\n${teamOptions}`;
                 promptMsg += '\n\nInserisci il numero:';
 
                 const choice = prompt(promptMsg, '1');
-                if (choice === null) {
-                    buyFeedback.textContent = 'Acquisto annullato';
-                    return;
-                }
+                if (choice === null) return buyFeedback.textContent = 'Acquisto annullato';
 
                 const choiceNum = parseInt(choice);
+                let buyerType = 'MINE';
+                let teamId = null;
 
                 if (choiceNum === 1) {
-                    // Add to my team
-                    state.bought.push({
-                        id: player.id,
-                        name: player.name,
-                        team: player.team,
-                        roles: [...player.roles],
-                        price: price,
-                        baseQuote: player.baseQuote,
-                        fvm: player.fvm || player.baseQuote,
-                        percentage: state.budget ? Math.round((price / state.budget) * 100) : 0
-                    });
-                    buyFeedback.textContent = `✅ ${player.name} acquistato per la tua squadra!`;
+                    buyerType = 'MINE';
                 } else if (choiceNum >= 2 && choiceNum - 2 < state.teams.length) {
-                    const targetTeamIdx = choiceNum - 2;
-                    const targetTeam = state.teams[targetTeamIdx];
-                    targetTeam.players.push({
-                        id: player.id,
-                        name: player.name,
-                        team: player.team,
-                        roles: [...player.roles],
-                        price: price,
-                        baseQuote: player.baseQuote,
-                        fvm: player.fvm || player.baseQuote,
-                    });
-                    buyFeedback.textContent = `✅ ${player.name} acquistato per ${targetTeam.name}!`;
+                    buyerType = 'OTHER';
+                    teamId = state.teams[choiceNum - 2].id;
                 } else {
-                    buyFeedback.textContent = 'Scelta non valida. Acquisto annullato.';
-                    return;
+                    return buyFeedback.textContent = 'Scelta non valida';
                 }
 
+                const { error } = await supabase.from('purchases').insert([{
+                    player_id: player.id,
+                    buyer_team_type: buyerType,
+                    team_id: teamId,
+                    price: price
+                }]);
+
+                if (error) return alert('Errore salvataggio acquisto: ' + error.message);
+
                 state.selectedPlayerId = null;
-                renderAll();
+                await loadStateFromDB();
             });
 
             budgetInput.addEventListener('change', function() {
                 state.budget = Number(this.value) || 500;
+                saveConfig();
                 renderAll();
             });
             teamInput.addEventListener('change', function() {
                 state.teamName = this.value || 'La Mia Squadra';
+                saveConfig();
             });
             minRoster.addEventListener('change', function() {
                 state.minRoster = Number(this.value) || 25;
                 if (state.minRoster > state.maxRoster) state.maxRoster = state.minRoster;
+                saveConfig();
                 renderAll();
             });
             maxRoster.addEventListener('change', function() {
                 state.maxRoster = Number(this.value) || 30;
                 if (state.maxRoster < state.minRoster) state.minRoster = state.maxRoster;
+                saveConfig();
                 renderAll();
             });
 
@@ -1228,8 +1321,7 @@
 
             exportBtn.addEventListener('click', function() {
                 if (!state.bought.length && state.teams.every(t => t.players.length === 0)) {
-                    alert('Nessun acquisto da esportare.');
-                    return;
+                    return alert('Nessun acquisto da esportare.');
                 }
                 let csv = 'Squadra,Nome,Prezzo,FVM,Percentuale,ID\n';
                 state.bought.forEach(b => {
@@ -1250,8 +1342,26 @@
                 URL.revokeObjectURL(url);
             });
 
-            // Init
-            renderAll();
+            // ----- REAL-TIME SUBSCRIPTION -----
+            function setupRealtimeSubscription() {
+                const channel = supabase
+                    .channel('db-changes')
+                    .on('postgres_changes', {
+                        event: '*',
+                        schema: 'public',
+                    }, () => {
+                        // Reload state on any database change
+                        loadStateFromDB();
+                    })
+                    .subscribe();
+
+                return channel;
+            }
+
+            // Init App from Supabase DB and setup realtime
+            loadStateFromDB().then(() => {
+                setupRealtimeSubscription();
+            });
         })();
     </script>
 </body>
