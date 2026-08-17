@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+  <title>Fantacalcio Mantra · Auction Manager</title>
+  <!-- Tailwind + Lucide (light) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- SheetJS for XLSX parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* subtle dark theme overrides & custom scroll */
+    body { background: #0f172a; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; border-radius: 8px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
+    .card { background: #1e293b; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); transition: all 0.15s ease; }
+    .card-hover:hover { background: #263348; }
+    .pitch-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: #1a2a3a; padding: 16px; border-radius: 24px; border: 1px solid #334155; }
+    .role-slot { min-height: 72px; background: #0f1a2a; border-radius: 14px; border: 1px dashed #334155; padding: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .player-card { background: #2d3b4f; border-radius: 12px; padding: 6px 8px; width: 100%; font-size: 0.75rem; border-left: 3px solid #3b82f6; transition: 0.1s; }
+    .player-card.multi { background: #3d3a1a; border-left-color: #fbbf24; border: 1px solid #fbbf24; }
+    .badge-role { background: #1e293b; border-radius: 30px; padding: 2px 8px; font-size: 0.6rem; color: #94a3b8; }
+    .kpi-value { font-weight: 700; color: #f1f5f9; }
+    .kpi-label { color: #94a3b8; font-size: 0.7rem; letter-spacing: 0.3px; }
+    .btn-emerald { background: #059669; color: white; border-radius: 40px; padding: 6px 16px; font-weight: 600; transition: 0.15s; }
+    .btn-emerald:hover { background: #047857; transform: scale(0.97); }
+    .btn-amber { background: #d97706; color: #0f172a; border-radius: 40px; padding: 6px 16px; font-weight: 600; }
+    .btn-outline { border: 1px solid #334155; border-radius: 40px; padding: 6px 14px; color: #cbd5e1; }
+    .btn-outline:hover { background: #334155; }
+    .empty-state { color: #475569; text-align: center; padding: 20px 10px; }
+    .formation-tab { background: #1e293b; border-radius: 30px; padding: 6px 14px; font-size: 0.8rem; font-weight: 500; color: #94a3b8; cursor: pointer; transition: 0.1s; border: 1px solid transparent; }
+    .formation-tab.active { background: #2d3b4f; color: #f1f5f9; border-color: #3b82f6; }
+    .formation-tab:hover { background: #334155; color: #e2e8f0; }
+    .feed-item { border-left: 3px solid #059669; padding-left: 10px; margin: 6px 0; background: #1a2538; border-radius: 8px; padding: 8px 10px; }
+    .feed-item .undo { color: #f87171; cursor: pointer; font-size: 0.7rem; margin-left: 10px; }
+    .feed-item .undo:hover { color: #ef4444; text-decoration: underline; }
+    #dropzone { border: 2px dashed #334155; border-radius: 20px; padding: 12px; transition: 0.15s; }
+    #dropzone.dragover { border-color: #3b82f6; background: #1e293b; }
+  </style>
+</head>
+<body class="text-slate-200 p-4 md:p-6 min-h-screen">
+
+<div id="app" class="max-w-7xl mx-auto">
+  <!-- HEADER & SETUP -->
+  <header class="card p-4 mb-4 flex flex-wrap items-center gap-3 justify-between">
+    <div class="flex items-center gap-2 flex-wrap">
+      <i class="fas fa-futbol text-emerald-400 text-xl"></i>
+      <span class="font-bold text-lg">Mantra Auction</span>
+      <div id="dropzone" class="text-xs flex items-center gap-2 cursor-pointer bg-slate-800 px-3 py-1 rounded-full">
+        <i class="fas fa-file-upload text-emerald-400"></i>
+        <span id="fileLabel">Carica XLSX</span>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+      </div>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 text-sm">
+      <div><span class="kpi-label">Budget</span> <input id="budgetInput" type="number" value="500" class="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"></div>
+      <div><span class="kpi-label">Team</span> <input id="teamInput" value="Squadra" class="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-white"></div>
+      <div><span class="kpi-label">Min/Max</span> <input id="minRoster" type="number" value="25" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-white"> / <input id="maxRoster" type="number" value="30" class="w-12 bg-slate-800 border border-slate-700 rounded px-1 py-1 text-white"></div>
+    </div>
+  </header>
+
+  <!-- KPI BAR -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="card p-3 flex justify-between"><span class="kpi-label">💰 Rimasti</span><span id="kpiBudget" class="kpi-value text-emerald-400">500</span></div>
+    <div class="card p-3 flex justify-between"><span class="kpi-label">📊 Speso</span><span id="kpiSpent" class="kpi-value text-amber-400">0%</span></div>
+    <div class="card p-3 flex justify-between"><span class="kpi-label">📋 Slots</span><span id="kpiSlots" class="kpi-value">0/25</span></div>
+    <div class="card p-3 flex justify-between"><span class="kpi-label">🔝 Max bid</span><span id="kpiMaxBid" class="kpi-value text-cyan-300">500</span></div>
+  </div>
+
+  <!-- MAIN 2-COL -->
+  <div class="flex flex-col lg:flex-row gap-4">
+    <!-- LEFT: search + purchase + feed -->
+    <div class="lg:w-1/3 space-y-4">
+      <!-- search -->
+      <div class="card p-4">
+        <div class="relative">
+          <i class="fas fa-search absolute left-3 top-3 text-slate-500"></i>
+          <input id="searchInput" type="text" placeholder="Cerca giocatore o ruolo..." class="w-full bg-slate-800 border border-slate-700 rounded-full pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-emerald-500">
+        </div>
+        <div id="searchResults" class="mt-2 max-h-48 overflow-y-auto text-sm space-y-1"></div>
+      </div>
+
+      <!-- quick buy panel -->
+      <div class="card p-4" id="buyPanel">
+        <div id="selectedPlayerDisplay" class="empty-state">Seleziona un giocatore</div>
+        <div class="flex items-center gap-2 mt-2">
+          <input id="priceInput" type="number" placeholder="Prezzo" class="w-24 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-sm">
+          <button id="confirmBuyBtn" class="btn-emerald text-sm px-4 py-1 disabled:opacity-40" disabled><i class="fas fa-cart-plus mr-1"></i> Acquista</button>
+          <button id="clearSelectionBtn" class="text-slate-400 text-sm"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="buyFeedback" class="text-xs text-amber-400 mt-1"></div>
+      </div>
+
+      <!-- history feed -->
+      <div class="card p-4">
+        <div class="flex justify-between items-center"><span class="font-semibold">📋 Acquisti</span><span id="feedCount" class="text-xs text-slate-400">0</span></div>
+        <div id="purchaseFeed" class="max-h-56 overflow-y-auto text-sm mt-2 space-y-1"></div>
+      </div>
+
+      <!-- Flexibility matrix + panic button -->
+      <div class="card p-4 flex flex-wrap items-center gap-2 justify-between">
+        <span class="text-xs font-medium"><i class="fas fa-puzzle-piece text-amber-400 mr-1"></i> Jolly: <span id="jollyCount">0</span></span>
+        <button id="panicBtn" class="btn-outline text-xs"><i class="fas fa-life-ring"></i> Free agent</button>
+        <button id="exportBtn" class="btn-outline text-xs"><i class="fas fa-file-export"></i> Export</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: formations + pitch -->
+    <div class="lg:w-2/3 space-y-3">
+      <!-- formation tabs -->
+      <div class="flex flex-wrap gap-1" id="formationTabs">
+        <span class="formation-tab active" data-f="3-4-2-1">3-4-2-1</span>
+        <span class="formation-tab" data-f="3-4-1-2">3-4-1-2</span>
+        <span class="formation-tab" data-f="3-4-3">3-4-3</span>
+        <span class="formation-tab" data-f="3-5-2">3-5-2</span>
+        <span class="formation-tab" data-f="3-5-1-1">3-5-1-1</span>
+        <span class="formation-tab" data-f="4-3-3">4-3-3</span>
+        <span class="formation-tab" data-f="4-3-1-2">4-3-1-2</span>
+        <span class="formation-tab" data-f="4-2-3-1">4-2-3-1</span>
+        <span class="formation-tab" data-f="4-3-2-1">4-3-2-1</span>
+        <span class="formation-tab" data-f="4-1-4-1">4-1-4-1</span>
+        <span class="formation-tab" data-f="4-4-2">4-4-2</span>
+        <span class="formation-tab" data-f="4-4-1-1">4-4-1-1</span>
+      </div>
+      <!-- pitch + coverage -->
+      <div class="card p-3">
+        <div class="flex justify-between items-center mb-2"><span id="formationLabel" class="font-semibold">3-4-2-1</span><span id="coverageLabel" class="text-xs bg-slate-800 px-3 py-1 rounded-full">0% coperto</span></div>
+        <div id="pitchContainer" class="pitch-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ----- STATE -----
+    const state = {
+      players: [],          // parsed from xlsx
+      bought: [],           // { id, name, team, roles, price, baseQuote, percentage }
+      formation: '3-4-2-1',
+      selectedPlayerId: null,
+      budget: 500,
+      teamName: 'Squadra',
+      minRoster: 25,
+      maxRoster: 30,
+    };
+
+    // formation map: role -> number of slots
+    const FORMATIONS = {
+      '3-4-2-1': { Por:1, Dd:1, Ds:1, Dc:1, C:2, T:1, W:1, A:1, Pc:1 },
+      '3-4-1-2': { Por:1, Dd:1, Ds:1, Dc:1, C:2, T:1, A:2, Pc:0 },
+      '3-4-3': { Por:1, Dd:1, Ds:1, Dc:1, C:2, W:1, A:1, Pc:1 },
+      '3-5-2': { Por:1, Dd:1, Ds:1, Dc:1, C:2, M:1, A:2, Pc:0 },
+      '3-5-1-1': { Por:1, Dd:1, Ds:1, Dc:1, C:2, M:1, T:1, A:1, Pc:1 },
+      '4-3-3': { Por:1, Dd:1, Ds:1, Dc:2, C:2, M:1, W:1, A:1, Pc:1 },
+      '4-3-1-2': { Por:1, Dd:1, Ds:1, Dc:2, C:2, M:1, T:1, A:2, Pc:0 },
+      '4-2-3-1': { Por:1, Dd:1, Ds:1, Dc:2, C:1, M:1, T:1, W:1, A:1, Pc:1 },
+      '4-3-2-1': { Por:1, Dd:1, Ds:1, Dc:2, C:2, M:1, T:1, A:1, Pc:1 },
+      '4-1-4-1': { Por:1, Dd:1, Ds:1, Dc:2, M:1, C:2, W:1, A:1, Pc:1 },
+      '4-4-2': { Por:1, Dd:1, Ds:1, Dc:2, C:2, W:1, A:1, Pc:1 },
+      '4-4-1-1': { Por:1, Dd:1, Ds:1, Dc:2, C:2, W:1, T:1, A:1, Pc:1 },
+    };
+
+    // DOM refs
+    const $ = id => document.getElementById(id);
+    const fileInput = $('fileInput');
+    const dropzone = $('dropzone');
+    const searchInput = $('searchInput');
+    const searchResults = $('searchResults');
+    const selectedPlayerDisplay = $('selectedPlayerDisplay');
+    const priceInput = $('priceInput');
+    const confirmBtn = $('confirmBuyBtn');
+    const clearSelBtn = $('clearSelectionBtn');
+    const purchaseFeed = $('purchaseFeed');
+    const feedCount = $('feedCount');
+    const pitchContainer = $('pitchContainer');
+    const formationTabs = $('formationTabs');
+    const formationLabel = $('formationLabel');
+    const coverageLabel = $('coverageLabel');
+    const kpiBudget = $('kpiBudget');
+    const kpiSpent = $('kpiSpent');
+    const kpiSlots = $('kpiSlots');
+    const kpiMaxBid = $('kpiMaxBid');
+    const jollyCount = $('jollyCount');
+    const panicBtn = $('panicBtn');
+    const exportBtn = $('exportBtn');
+    const budgetInput = $('budgetInput');
+    const teamInput = $('teamInput');
+    const minRoster = $('minRoster');
+    const maxRoster = $('maxRoster');
+    const buyFeedback = $('buyFeedback');
+
+    // ----- HELPERS -----
+    function parseRoles(rmStr) {
+      if (!rmStr) return [];
+      return rmStr.split(/[;,]/).map(s => s.trim()).filter(Boolean);
+    }
+
+    // find player by id
+    function getPlayer(id) { return state.players.find(p => p.id === id); }
+
+    // compute bought set
+    function boughtIds() { return new Set(state.bought.map(b => b.id)); }
+
+    // remaining budget
+    function remainingBudget() {
+      const spent = state.bought.reduce((sum, b) => sum + b.price, 0);
+      return state.budget - spent;
+    }
+
+    // slots used
+    function usedSlots() { return state.bought.length; }
+
+    // max bid
+    function maxBid() {
+      const remain = remainingBudget();
+      const slots = usedSlots();
+      const maxSlots = state.maxRoster;
+      const leftSlots = Math.max(0, maxSlots - slots - 1);
+      return Math.max(0, remain - leftSlots);
+    }
+
+    // update KPI
+    function updateKPIs() {
+      const remain = remainingBudget();
+      const spent = state.budget - remain;
+      const used = usedSlots();
+      const maxSlots = state.maxRoster;
+      const pct = state.budget ? Math.round((spent/state.budget)*100) : 0;
+      kpiBudget.textContent = remain;
+      kpiSpent.textContent = pct + '%';
+      kpiSlots.textContent = `${used}/${maxSlots}`;
+      kpiMaxBid.textContent = maxBid();
+      // jolly count (multi-role bought)
+      const jolly = state.bought.filter(b => b.roles && b.roles.length > 1).length;
+      jollyCount.textContent = jolly;
+      // update buy button
+      confirmBtn.disabled = !state.selectedPlayerId || !priceInput.value || Number(priceInput.value) > maxBid() || Number(priceInput.value) <= 0;
+    }
+
+    // render feed
+    function renderFeed() {
+      purchaseFeed.innerHTML = state.bought.map((b, idx) => `
+        <div class="feed-item flex justify-between items-center">
+          <span><strong>${b.name}</strong> (${b.team}) <span class="text-emerald-300">${b.price}€</span> <span class="text-xs text-slate-400">${b.roles.join('/')}</span></span>
+          <span class="undo" data-idx="${idx}"><i class="fas fa-undo-alt"></i></span>
+        </div>
+      `).join('');
+      feedCount.textContent = state.bought.length;
+      document.querySelectorAll('.feed-item .undo').forEach(el => {
+        el.addEventListener('click', function() {
+          const idx = parseInt(this.dataset.idx);
+          if (!isNaN(idx) && idx >= 0 && idx < state.bought.length) {
+            state.bought.splice(idx, 1);
+            renderAll();
+          }
+        });
+      });
+    }
+
+    // render pitch
+    function renderPitch() {
+      const formation = state.formation;
+      const slots = FORMATIONS[formation];
+      if (!slots) return;
+      const roleKeys = Object.keys(slots);
+      // build a grid: 4 cols
+      let html = '';
+      // get bought players with roles
+      const boughtWithRoles = state.bought.filter(b => b.roles && b.roles.length > 0);
+      // for each role, find players covering it
+      roleKeys.forEach(role => {
+        const count = slots[role] || 0;
+        const playersForRole = boughtWithRoles.filter(b => b.roles.includes(role));
+        const displayPlayers = playersForRole.slice(0, count);
+        const emptySlots = Math.max(0, count - displayPlayers.length);
+        const isMandatory = count > 0;
+        html += `<div class="role-slot ${isMandatory && emptySlots > 0 && usedSlots()/state.maxRoster > 0.6 ? 'border-red-500 border-2' : ''}">`;
+        html += `<div class="text-[0.5rem] text-slate-400 uppercase">${role}</div>`;
+        displayPlayers.forEach(p => {
+          const isMulti = p.roles.length > 1;
+          const altRoles = p.roles.filter(r => r !== role).join('+');
+          html += `<div class="player-card ${isMulti ? 'multi' : ''} text-xs">
+            <div class="flex justify-between"><span>${p.name}</span><span class="text-emerald-300">${p.price}</span></div>
+            <div class="flex justify-between text-[0.55rem] text-slate-400"><span>${p.team}</span><span>${isMulti ? '🟡 '+altRoles : ''}</span></div>
+          </div>`;
+        });
+        if (emptySlots > 0) {
+          for (let i=0; i<emptySlots; i++) {
+            html += `<div class="text-[0.5rem] text-slate-600">⬜ libero</div>`;
+          }
+        }
+        html += `</div>`;
+      });
+      pitchContainer.innerHTML = html;
+      // coverage
+      const totalSlots = roleKeys.reduce((acc, r) => acc + (slots[r]||0), 0);
+      const filled = roleKeys.reduce((acc, r) => {
+        const count = slots[r]||0;
+        const players = boughtWithRoles.filter(b => b.roles.includes(r)).length;
+        return acc + Math.min(count, players);
+      }, 0);
+      const pct = totalSlots ? Math.round((filled/totalSlots)*100) : 0;
+      coverageLabel.textContent = `${pct}% coperto`;
+      formationLabel.textContent = formation;
+    }
+
+    // full render
+    function renderAll() {
+      updateKPIs();
+      renderFeed();
+      renderPitch();
+      // update selected player display
+      if (state.selectedPlayerId) {
+        const p = getPlayer(state.selectedPlayerId);
+        if (p && !boughtIds().has(p.id)) {
+          selectedPlayerDisplay.innerHTML = `<div class="text-sm"><strong>${p.name}</strong> (${p.team}) <span class="text-amber-400">${p.roles.join('/')}</span> · base ${p.baseQuote}</div>`;
+          priceInput.value = p.baseQuote || 1;
+          confirmBtn.disabled = false;
+        } else {
+          state.selectedPlayerId = null;
+          selectedPlayerDisplay.innerHTML = `<div class="empty-state">Seleziona un giocatore</div>`;
+          confirmBtn.disabled = true;
+        }
+      } else {
+        selectedPlayerDisplay.innerHTML = `<div class="empty-state">Seleziona un giocatore</div>`;
+        confirmBtn.disabled = true;
+      }
+      // update search results if search active
+      if (searchInput.value.length > 0) performSearch(searchInput.value);
+    }
+
+    // search
+    function performSearch(query) {
+      if (!query.trim()) { searchResults.innerHTML = ''; return; }
+      const q = query.toLowerCase();
+      const boughtSet = boughtIds();
+      const available = state.players.filter(p => !boughtSet.has(p.id) && 
+        (p.name.toLowerCase().includes(q) || p.roles.some(r => r.toLowerCase().includes(q)) || p.team.toLowerCase().includes(q))
+      );
+      searchResults.innerHTML = available.slice(0, 12).map(p => `
+        <div class="cursor-pointer hover:bg-slate-700 p-1 rounded flex justify-between" data-id="${p.id}">
+          <span>${p.name} (${p.team})</span>
+          <span class="text-xs text-slate-400">${p.roles.join('/')}</span>
+        </div>
+      `).join('');
+      searchResults.querySelectorAll('[data-id]').forEach(el => {
+        el.addEventListener('click', function() {
+          const id = parseInt(this.dataset.id);
+          state.selectedPlayerId = id;
+          renderAll();
+        });
+      });
+    }
+
+    // XLSX parser
+    function parseXLSX(data) {
+      try {
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets['Tutti'] || workbook.Sheets[workbook.SheetNames[0]];
+        if (!sheet) return [];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        if (json.length < 2) return [];
+        const headers = json[1]; // row2
+        const idIdx = headers.indexOf('Id');
+        const nameIdx = headers.indexOf('Nome');
+        const teamIdx = headers.indexOf('Squadra');
+        const rmIdx = headers.indexOf('RM');
+        const qtIdx = headers.indexOf('Qt.A M') > -1 ? headers.indexOf('Qt.A M') : (headers.indexOf('Qt.I M') > -1 ? headers.indexOf('Qt.I M') : headers.indexOf('FVM M'));
+        if (idIdx === -1 || nameIdx === -1 || teamIdx === -1 || rmIdx === -1 || qtIdx === -1) {
+          alert('Colonne non trovate: verifica header (Id, Nome, Squadra, RM, Qt.A M)');
+          return [];
+        }
+        const players = [];
+        for (let i=2; i<json.length; i++) {
+          const row = json[i];
+          if (!row || !row[idIdx]) continue;
+          const id = Number(row[idIdx]);
+          const name = String(row[nameIdx] || '').trim();
+          const team = String(row[teamIdx] || '').trim();
+          const rm = String(row[rmIdx] || '').trim();
+          const baseQuote = parseFloat(row[qtIdx]) || 1;
+          if (!name || !team) continue;
+          const roles = parseRoles(rm);
+          if (roles.length === 0) continue;
+          players.push({ id, name, team, roles, baseQuote });
+        }
+        return players;
+      } catch(e) { alert('Errore parse XLSX: '+e.message); return []; }
+    }
+
+    // load file
+    function loadFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const parsed = parseXLSX(data);
+        if (parsed.length) {
+          state.players = parsed;
+          state.bought = [];
+          state.selectedPlayerId = null;
+          renderAll();
+          document.getElementById('fileLabel').textContent = file.name + ' ✅';
+        } else {
+          alert('Nessun giocatore valido trovato.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ----- EVENT BINDINGS -----
+    fileInput.addEventListener('change', function(e) {
+      if (this.files.length) loadFile(this.files[0]);
+    });
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', e => { dropzone.classList.remove('dragover'); });
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault(); dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    // formation tabs
+    formationTabs.addEventListener('click', function(e) {
+      const tab = e.target.closest('.formation-tab');
+      if (!tab) return;
+      document.querySelectorAll('.formation-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      state.formation = tab.dataset.f;
+      renderAll();
+    });
+
+    // search
+    searchInput.addEventListener('input', function() { performSearch(this.value); });
+
+    // clear selection
+    clearSelBtn.addEventListener('click', function() {
+      state.selectedPlayerId = null;
+      renderAll();
+    });
+
+    // confirm buy
+    confirmBtn.addEventListener('click', function() {
+      const id = state.selectedPlayerId;
+      if (!id) return;
+      const player = getPlayer(id);
+      if (!player) return;
+      if (boughtIds().has(id)) { buyFeedback.textContent = 'Già acquistato!'; return; }
+      const price = Number(priceInput.value);
+      if (price <= 0 || isNaN(price)) { buyFeedback.textContent = 'Prezzo non valido'; return; }
+      if (price > maxBid()) { buyFeedback.textContent = `Supera il max bid (${maxBid()})`; return; }
+      if (usedSlots() >= state.maxRoster) { buyFeedback.textContent = 'Roster pieno!'; return; }
+      state.bought.push({
+        id: player.id,
+        name: player.name,
+        team: player.team,
+        roles: [...player.roles],
+        price: price,
+        baseQuote: player.baseQuote,
+        percentage: state.budget ? Math.round((price/state.budget)*100) : 0
+      });
+      state.selectedPlayerId = null;
+      buyFeedback.textContent = `✅ ${player.name} acquistato!`;
+      renderAll();
+    });
+
+    // budget, team, roster limits
+    budgetInput.addEventListener('change', function() {
+      state.budget = Number(this.value) || 500;
+      renderAll();
+    });
+    teamInput.addEventListener('change', function() {
+      state.teamName = this.value || 'Squadra';
+    });
+    minRoster.addEventListener('change', function() {
+      state.minRoster = Number(this.value) || 25;
+      if (state.minRoster > state.maxRoster) state.maxRoster = state.minRoster;
+      renderAll();
+    });
+    maxRoster.addEventListener('change', function() {
+      state.maxRoster = Number(this.value) || 30;
+      if (state.maxRoster < state.minRoster) state.minRoster = state.maxRoster;
+      renderAll();
+    });
+
+    // panic: free agent view (alert with list)
+    panicBtn.addEventListener('click', function() {
+      const boughtSet = boughtIds();
+      const free = state.players.filter(p => !boughtSet.has(p.id));
+      if (!free.length) { alert('Nessun free agent disponibile.'); return; }
+      const msg = free.slice(0, 20).map(p => `${p.name} (${p.team}) [${p.roles.join('/')}] base ${p.baseQuote}`).join('\n');
+      alert('Free agent (max 20):\n'+msg);
+    });
+
+    // export CSV
+    exportBtn.addEventListener('click', function() {
+      if (!state.bought.length) { alert('Nessun acquisto da esportare.'); return; }
+      let csv = 'Nome,Squadra,Prezzo,Percentuale,ID\n';
+      state.bought.forEach(b => {
+        csv += `${b.name},${b.team},${b.price},${b.percentage || 0},${b.id}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'roster_mantra.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // init
+    renderAll();
+  })();
+</script>
+</body>
+</html>
