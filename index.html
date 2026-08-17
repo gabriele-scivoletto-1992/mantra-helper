@@ -358,22 +358,6 @@
             margin-bottom: 2px;
         }
 
-        .team-badge {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-        .team-badge-mine {
-            background: #059669;
-            color: white;
-        }
-        .team-badge-other {
-            background: #3b82f6;
-            color: white;
-        }
-
         .sync-status {
             display: flex;
             align-items: center;
@@ -556,7 +540,6 @@
 
     <script>
         // ----- SUPABASE CLIENT CONFIGURATION -----
-        // Using the correct .co domain
         const SUPABASE_URL = 'https://nvfzvcmcmehjunbjtzko.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_M3Dp4OcnN2g26H2LDxW49Q_rYP5FG_0';
 
@@ -565,10 +548,15 @@
         let supabaseReady = false;
 
         try {
-            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            supabaseReady = true;
-            console.log('✅ Supabase client initialized successfully');
-            console.log('📡 Connected to:', SUPABASE_URL);
+            if (typeof supabase !== 'undefined' && supabase.createClient) {
+                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                supabaseReady = true;
+                console.log('✅ Supabase client initialized successfully');
+                console.log('📡 Connected to:', SUPABASE_URL);
+            } else {
+                console.warn('⚠️ Supabase library not loaded, running in offline mode');
+                supabaseReady = false;
+            }
         } catch (error) {
             console.error('❌ Failed to initialize Supabase client:', error);
             supabaseReady = false;
@@ -588,14 +576,107 @@
                 teams: [],
                 isLoading: true,
                 supabaseAvailable: supabaseReady,
+                tablesExist: false,
             };
+
+            // ----- CREATE TABLES IF NOT EXISTS -----
+            async function createTablesIfNotExist() {
+                if (!state.supabaseAvailable || !supabaseClient) return false;
+
+                try {
+                    // Check if config table exists
+                    const { error: configCheck } = await supabaseClient.from('config').select('*').limit(1);
+
+                    if (configCheck && configCheck.code === '42P01') {
+                        // Tables don't exist - create them using SQL via REST
+                        console.log('📦 Creating database tables...');
+
+                        // Create config table
+                        const { error: createConfig } = await supabaseClient.rpc('exec_sql', {
+                            sql: `
+                                CREATE TABLE IF NOT EXISTS config (
+                                    id INTEGER PRIMARY KEY DEFAULT 1,
+                                    budget INTEGER DEFAULT 500,
+                                    team_name TEXT DEFAULT 'La Mia Squadra',
+                                    min_roster INTEGER DEFAULT 25,
+                                    max_roster INTEGER DEFAULT 30,
+                                    formation TEXT DEFAULT '3-4-3'
+                                );
+                                INSERT INTO config (id, budget, team_name, min_roster, max_roster, formation)
+                                VALUES (1, 500, 'La Mia Squadra', 25, 30, '3-4-3')
+                                ON CONFLICT (id) DO NOTHING;
+                            `
+                        });
+
+                        // Create players table
+                        await supabaseClient.rpc('exec_sql', {
+                            sql: `
+                                CREATE TABLE IF NOT EXISTS players (
+                                    id INTEGER PRIMARY KEY,
+                                    name TEXT NOT NULL,
+                                    team TEXT NOT NULL,
+                                    roles TEXT[] NOT NULL,
+                                    base_quote DECIMAL,
+                                    fvm DECIMAL
+                                );
+                            `
+                        });
+
+                        // Create teams table
+                        await supabaseClient.rpc('exec_sql', {
+                            sql: `
+                                CREATE TABLE IF NOT EXISTS teams (
+                                    id SERIAL PRIMARY KEY,
+                                    name TEXT NOT NULL UNIQUE
+                                );
+                            `
+                        });
+
+                        // Create purchases table
+                        await supabaseClient.rpc('exec_sql', {
+                            sql: `
+                                CREATE TABLE IF NOT EXISTS purchases (
+                                    id SERIAL PRIMARY KEY,
+                                    player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
+                                    buyer_team_type TEXT CHECK (buyer_team_type IN ('MINE', 'OTHER')),
+                                    team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE,
+                                    price DECIMAL NOT NULL,
+                                    created_at TIMESTAMP DEFAULT NOW()
+                                );
+                            `
+                        });
+
+                        console.log('✅ Tables created successfully!');
+                        state.tablesExist = true;
+                        return true;
+                    }
+
+                    state.tablesExist = true;
+                    return true;
+                } catch (error) {
+                    console.warn('⚠️ Could not create tables:', error);
+                    console.warn('💡 Please run the SQL setup script manually in the Supabase SQL Editor.');
+                    state.tablesExist = false;
+                    return false;
+                }
+            }
 
             // ----- DB SYNC FUNCTIONS -----
             async function loadStateFromDB() {
-                if (!state.supabaseAvailable) {
+                if (!state.supabaseAvailable || !supabaseClient) {
                     console.warn('Supabase not available - running in offline mode');
                     state.isLoading = false;
                     renderAll();
+                    return;
+                }
+
+                // Check if tables exist
+                const tablesExist = await createTablesIfNotExist();
+                if (!tablesExist) {
+                    console.warn('Tables not found - using defaults');
+                    state.isLoading = false;
+                    renderAll();
+                    updateSyncStatus(false, 'Tables not configured');
                     return;
                 }
 
@@ -686,7 +767,7 @@
             }
 
             async function saveConfig() {
-                if (!state.supabaseAvailable) return;
+                if (!state.supabaseAvailable || !supabaseClient || !state.tablesExist) return;
                 try {
                     await supabaseClient.from('config').update({
                         budget: state.budget,
@@ -699,8 +780,8 @@
             }
 
             async function syncPlayersToDB(parsedPlayers) {
-                if (!state.supabaseAvailable) {
-                    console.warn('Supabase not available - players saved locally only');
+                if (!state.supabaseAvailable || !supabaseClient || !state.tablesExist) {
+                    console.warn('Supabase not available or tables not configured - players saved locally only');
                     state.players = parsedPlayers;
                     renderAll();
                     return;
@@ -725,14 +806,14 @@
                 } catch (e) { console.error('Sync players error:', e); }
             }
 
-            function updateSyncStatus(online) {
+            function updateSyncStatus(online, message) {
                 const statusEl = document.getElementById('syncStatus');
                 if (online) {
                     statusEl.className = 'sync-status online';
-                    statusEl.innerHTML = '<span class="dot"></span><span>Online</span>';
+                    statusEl.innerHTML = `<span class="dot"></span><span>${message || 'Online'}</span>`;
                 } else {
                     statusEl.className = 'sync-status offline';
-                    statusEl.innerHTML = '<span class="dot"></span><span>Offline</span>';
+                    statusEl.innerHTML = `<span class="dot"></span><span>${message || 'Offline'}</span>`;
                 }
             }
 
@@ -948,7 +1029,7 @@
                 document.querySelectorAll('.feed-item .undo').forEach(el => {
                     el.addEventListener('click', async function() {
                         const dbId = parseInt(this.dataset.dbId);
-                        if (dbId && state.supabaseAvailable) {
+                        if (dbId && state.supabaseAvailable && supabaseClient && state.tablesExist) {
                             await supabaseClient.from('purchases').delete().eq('id', dbId);
                             await loadStateFromDB();
                         } else if (dbId) {
@@ -1135,7 +1216,7 @@
                         const id = parseInt(this.dataset.id);
                         const name = this.dataset.name;
                         if (confirm(`Eliminare la squadra "${name}"?`)) {
-                            if (state.supabaseAvailable) {
+                            if (state.supabaseAvailable && supabaseClient && state.tablesExist) {
                                 await supabaseClient.from('purchases').delete().eq('team_id', id);
                                 await supabaseClient.from('teams').delete().eq('id', id);
                                 await loadStateFromDB();
@@ -1154,7 +1235,7 @@
                 document.querySelectorAll('.remove-player').forEach(btn => {
                     btn.addEventListener('click', async function() {
                         const dbId = parseInt(this.dataset.dbId);
-                        if (dbId && state.supabaseAvailable) {
+                        if (dbId && state.supabaseAvailable && supabaseClient && state.tablesExist) {
                             await supabaseClient.from('purchases').delete().eq('id', dbId);
                             await loadStateFromDB();
                         } else if (dbId) {
@@ -1269,7 +1350,7 @@
                     const data = new Uint8Array(e.target.result);
                     const parsed = parseXLSX(data);
                     if (parsed.length) {
-                        if (state.supabaseAvailable) {
+                        if (state.supabaseAvailable && supabaseClient && state.tablesExist) {
                             await syncPlayersToDB(parsed);
                             await loadStateFromDB();
                         } else {
@@ -1295,7 +1376,7 @@
                     return alert('Squadra già esistente');
                 }
 
-                if (state.supabaseAvailable) {
+                if (state.supabaseAvailable && supabaseClient && state.tablesExist) {
                     const { data, error } = await supabaseClient.from('teams').insert([{ name }]).select().single();
                     if (error) return alert('Errore creazione squadra: ' + error.message);
                     state.teams.push({ id: data.id, name: data.name, players: [] });
@@ -1331,7 +1412,7 @@
                 document.querySelectorAll('.formation-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 state.formation = tab.dataset.f;
-                if (state.supabaseAvailable) saveConfig();
+                if (state.supabaseAvailable && state.tablesExist) saveConfig();
                 renderAll();
             });
 
@@ -1388,7 +1469,7 @@
                     return buyFeedback.textContent = 'Scelta non valida';
                 }
 
-                if (state.supabaseAvailable) {
+                if (state.supabaseAvailable && supabaseClient && state.tablesExist) {
                     const { error } = await supabaseClient.from('purchases').insert([{
                         player_id: player.id,
                         buyer_team_type: buyerType,
@@ -1417,7 +1498,7 @@
                 }
 
                 state.selectedPlayerId = null;
-                if (state.supabaseAvailable) {
+                if (state.supabaseAvailable && supabaseClient && state.tablesExist) {
                     await loadStateFromDB();
                 } else {
                     renderAll();
@@ -1426,23 +1507,23 @@
 
             budgetInput.addEventListener('change', function() {
                 state.budget = Number(this.value) || 500;
-                if (state.supabaseAvailable) saveConfig();
+                if (state.supabaseAvailable && state.tablesExist) saveConfig();
                 renderAll();
             });
             teamInput.addEventListener('change', function() {
                 state.teamName = this.value || 'La Mia Squadra';
-                if (state.supabaseAvailable) saveConfig();
+                if (state.supabaseAvailable && state.tablesExist) saveConfig();
             });
             minRoster.addEventListener('change', function() {
                 state.minRoster = Number(this.value) || 25;
                 if (state.minRoster > state.maxRoster) state.maxRoster = state.minRoster;
-                if (state.supabaseAvailable) saveConfig();
+                if (state.supabaseAvailable && state.tablesExist) saveConfig();
                 renderAll();
             });
             maxRoster.addEventListener('change', function() {
                 state.maxRoster = Number(this.value) || 30;
                 if (state.maxRoster < state.minRoster) state.minRoster = state.maxRoster;
-                if (state.supabaseAvailable) saveConfig();
+                if (state.supabaseAvailable && state.tablesExist) saveConfig();
                 renderAll();
             });
 
@@ -1476,7 +1557,7 @@
 
             // ----- REAL-TIME SUBSCRIPTION -----
             function setupRealtimeSubscription() {
-                if (!state.supabaseAvailable) return;
+                if (!state.supabaseAvailable || !supabaseClient || !state.tablesExist) return;
 
                 try {
                     const channel = supabaseClient
@@ -1497,7 +1578,7 @@
             }
 
             // Init App
-            if (state.supabaseAvailable) {
+            if (state.supabaseAvailable && supabaseClient) {
                 loadStateFromDB().then(() => {
                     setupRealtimeSubscription();
                 });
