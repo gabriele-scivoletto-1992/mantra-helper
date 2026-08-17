@@ -374,21 +374,6 @@
             color: white;
         }
 
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top-color: #34d399;
-            animation: spin 0.8s ease-in-out infinite;
-        }
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
         .sync-status {
             display: flex;
             align-items: center;
@@ -570,11 +555,12 @@
     </div>
 
     <script>
-        // ----- SUPABASE CLIENT CONFIGURATION (defined globally) -----
-        const SUPABASE_URL = 'https://nvfzvcmcmehjunbjtzko.supabase.com';
+        // ----- SUPABASE CLIENT CONFIGURATION -----
+        // Using the correct .co domain
+        const SUPABASE_URL = 'https://nvfzvcmcmehjunbjtzko.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52Znp2Y21jbWVoanVuYmp0emtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyNTk1NzgsImV4cCI6MjA1NjgzNTU3OH0.S6UjL60dDq96PClqUpk8p4S8a5e8G-n8m1K2L3N4P5Q';
 
-        // Initialize Supabase client globally
+        // Initialize Supabase client
         let supabaseClient = null;
         let supabaseReady = false;
 
@@ -582,6 +568,7 @@
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             supabaseReady = true;
             console.log('✅ Supabase client initialized successfully');
+            console.log('📡 Connected to:', SUPABASE_URL);
         } catch (error) {
             console.error('❌ Failed to initialize Supabase client:', error);
             supabaseReady = false;
@@ -633,7 +620,10 @@
                     }
 
                     // 2. Players
-                    const { data: dbPlayers } = await supabaseClient.from('players').select('*');
+                    const { data: dbPlayers, error: playersError } = await supabaseClient.from('players').select('*');
+                    if (playersError) {
+                        console.warn('Error loading players:', playersError);
+                    }
                     if (dbPlayers && dbPlayers.length > 0) {
                         state.players = dbPlayers.map(p => ({
                             id: p.id,
@@ -646,13 +636,20 @@
                     }
 
                     // 3. Teams
-                    const { data: dbTeams } = await supabaseClient.from('teams').select('*');
+                    const { data: dbTeams, error: teamsError } = await supabaseClient.from('teams').select('*');
+                    if (teamsError) {
+                        console.warn('Error loading teams:', teamsError);
+                    }
                     if (dbTeams) {
                         state.teams = dbTeams.map(t => ({ id: t.id, name: t.name, players: [] }));
                     }
 
                     // 4. Purchases with player details
-                    const { data: dbPurchases } = await supabaseClient.from('purchases').select('*, players(*)');
+                    const { data: dbPurchases, error: purchasesError } = await supabaseClient.from('purchases')
+                        .select('*, players(*)');
+                    if (purchasesError) {
+                        console.warn('Error loading purchases:', purchasesError);
+                    }
                     if (dbPurchases) {
                         state.bought = [];
                         state.teams.forEach(t => t.players = []);
