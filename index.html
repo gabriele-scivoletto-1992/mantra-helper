@@ -963,8 +963,9 @@
 
             function updateTeamDropdown() {
                 const select = document.getElementById('teamSelect');
-                // Keep "La Mia Squadra" as first option
-                select.innerHTML = '<option value="MINE">La Mia Squadra</option>';
+                // Keep "La Mia Squadra" as first option with updated name
+                const myTeamLabel = state.teamName || 'La Mia Squadra';
+                select.innerHTML = `<option value="MINE">${myTeamLabel}</option>`;
                 state.teams.forEach(team => {
                     const option = document.createElement('option');
                     option.value = team.id;
@@ -1010,6 +1011,8 @@
 
                     alert('✅ Configurazione salvata con successo!');
                     updateSyncStatus(true, 'Saved');
+                    // Update dropdown with new team name
+                    updateTeamDropdown();
                 } catch (err) {
                     console.error('Save config error:', err);
                     alert('Errore salvataggio: ' + err.message);
@@ -1863,13 +1866,27 @@
                 }
             });
 
+            // When team name changes, update dropdown
+            teamInput.addEventListener('input', function() {
+                state.teamName = this.value || 'La Mia Squadra';
+                // Update the dropdown option text
+                const myTeamOption = document.querySelector('#teamSelect option[value="MINE"]');
+                if (myTeamOption) {
+                    myTeamOption.textContent = state.teamName;
+                }
+            });
+
             budgetInput.addEventListener('change', function() {
                 state.budget = Number(this.value) || 500;
                 renderAll();
             });
             teamInput.addEventListener('change', function() {
                 state.teamName = this.value || 'La Mia Squadra';
-                document.querySelector('#teamSelect option[value="MINE"]').textContent = state.teamName;
+                // Update the dropdown option text
+                const myTeamOption = document.querySelector('#teamSelect option[value="MINE"]');
+                if (myTeamOption) {
+                    myTeamOption.textContent = state.teamName;
+                }
                 renderAll();
             });
             minRoster.addEventListener('change', function() {
