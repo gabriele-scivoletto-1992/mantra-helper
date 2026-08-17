@@ -807,7 +807,7 @@
                 state.teams.forEach(team => {
                     const option = document.createElement('option');
                     option.value = team.id;
-                    option.textContent = `${team.name} (${team.budget || 500}€)`;
+                    option.textContent = `${team.name} (${team.budget || 500})`;
                     select.appendChild(option);
                 });
             }
@@ -1240,8 +1240,8 @@
                                     <div>
                                         <span class="font-semibold text-lg">${team.name}</span>
                                         <span class="text-xs text-slate-400 ml-2">${team.players.length} giocatori</span>
-                                        <span class="text-xs text-emerald-400 ml-2">Speso: ${totalSpent}€ / ${team.budget || 500}€ (${pctUsed}%)</span>
-                                        <span class="text-xs ${remaining >= 0 ? 'text-emerald-400' : 'text-red-400'} ml-2">Rimasti: ${remaining}€</span>
+                                        <span class="text-xs text-emerald-400 ml-2">Speso: ${totalSpent} / ${team.budget || 500} (${pctUsed}%)</span>
+                                        <span class="text-xs ${remaining >= 0 ? 'text-emerald-400' : 'text-red-400'} ml-2">Rimasti: ${remaining}</span>
                                     </div>
                                     <button class="btn-danger text-xs delete-team" data-id="${team.id}" data-name="${team.name}"><i class="fas fa-trash"></i> Elimina</button>
                                 </div>
@@ -1249,7 +1249,7 @@
                                     ${team.players.map(p => `
                                         <div class="text-xs bg-slate-800 rounded p-1 flex justify-between items-center">
                                             <span>${p.name}</span>
-                                            <span class="text-emerald-300">${p.price}€</span>
+                                            <span class="text-emerald-300">${p.price}</span>
                                             <button class="text-red-400 text-xs remove-player" data-db-id="${p.dbPurchaseId}"><i class="fas fa-times"></i></button>
                                         </div>
                                     `).join('')}
@@ -1515,7 +1515,7 @@
                     const totalSpent = targetTeam.players.reduce((sum, p) => sum + p.price, 0);
                     if (totalSpent + price > targetTeam.budget) {
                         return buyFeedback.textContent =
-                            `Budget insufficiente per ${targetTeam.name}! (${targetTeam.budget - totalSpent}€ rimasti)`;
+                            `Budget insufficiente per ${targetTeam.name}! (${targetTeam.budget - totalSpent} rimasti)`;
                     }
                 }
 
