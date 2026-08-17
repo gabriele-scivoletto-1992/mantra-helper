@@ -302,6 +302,11 @@
         }
 
         /* Soccer pitch styles */
+        .pitch-wrapper {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
         .pitch {
             background: #1a7a3a;
             background-image:
@@ -312,8 +317,74 @@
             border: 2px solid rgba(255, 255, 255, 0.15);
             padding: 16px;
             min-height: 480px;
+            flex: 1;
+            min-width: 300px;
             position: relative;
         }
+        .bench {
+            background: #0f172a;
+            border-radius: 16px;
+            border: 2px solid #334155;
+            padding: 12px;
+            min-width: 180px;
+            max-width: 280px;
+            flex: 0 0 auto;
+            max-height: 480px;
+            overflow-y: auto;
+        }
+        .bench::-webkit-scrollbar {
+            width: 4px;
+        }
+        .bench::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        .bench::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .bench-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 8px;
+        }
+        .bench-player {
+            background: #1e293b;
+            border-radius: 6px;
+            padding: 4px 8px;
+            margin-bottom: 4px;
+            font-size: 0.65rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 2px solid #6b7280;
+        }
+        .bench-player.multi {
+            border-left-color: #fbbf24;
+            border: 1px solid #fbbf24;
+        }
+        .bench-player .b-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80px;
+        }
+        .bench-player .b-roles {
+            font-size: 0.5rem;
+            color: #94a3b8;
+        }
+        .bench-player .b-price {
+            color: #34d399;
+            font-weight: 600;
+            font-size: 0.6rem;
+        }
+
         .pitch-goal {
             position: absolute;
             left: 50%;
@@ -598,6 +669,14 @@
             .scouting-search {
                 max-width: 100%;
             }
+            .pitch-wrapper {
+                flex-direction: column;
+            }
+            .bench {
+                max-width: 100%;
+                min-width: unset;
+                max-height: 200px;
+            }
         }
     </style>
 </head>
@@ -698,7 +777,7 @@
                             <span id="formationLabel" class="font-semibold">3-4-3</span>
                             <span id="coverageLabel" class="text-xs bg-slate-800 px-3 py-1 rounded-full">0% coperto</span>
                         </div>
-                        <div id="pitchContainer" class="pitch"></div>
+                        <div id="pitchWrapper" class="pitch-wrapper"></div>
                     </div>
                 </div>
 
@@ -765,11 +844,127 @@
                 teamName: 'La Mia Squadra',
                 minRoster: 25,
                 maxRoster: 30,
-                teams: [], // { id, name, budget, players: [] }
+                teams: [],
                 isLoading: true,
                 supabaseAvailable: supabaseReady,
                 tablesExist: false,
                 scoutingFilter: '',
+            };
+
+            // ----- OFFICIAL FORMATIONS (with actual role names from XLSX) -----
+            const FORMATIONS = {
+                '3-4-3': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
+                        { roles: ['E', 'C', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['W', 'Pc', 'A'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dc', 'E', 'C', 'W', 'Pc', 'A']
+                },
+                '3-4-1-2': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
+                        { roles: ['E', 'C', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['T'], label: 'TQ', alternatives: {} },
+                        { roles: ['A', 'A'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dc', 'E', 'C', 'T', 'A']
+                },
+                '3-4-2-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
+                        { roles: ['M', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['E'], label: 'WING', alternatives: {} },
+                        { roles: ['T', 'A'], label: 'TQ', alternatives: {} },
+                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dc', 'M', 'C', 'E', 'T', 'A', 'Pc']
+                },
+                '3-5-2': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
+                        { roles: ['M', 'C', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['E'], label: 'WING', alternatives: {} },
+                        { roles: ['A', 'A'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dc', 'M', 'C', 'E', 'A']
+                },
+                '3-5-1-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF', alternatives: {} },
+                        { roles: ['M', 'M', 'C'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['E', 'E'], label: 'WING', alternatives: {} },
+                        { roles: ['A'], label: 'TQ', alternatives: {} },
+                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dc', 'M', 'C', 'E', 'A', 'Pc']
+                },
+                '4-3-3': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
+                        { roles: ['C', 'M', 'C'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['W', 'Pc', 'A'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'C', 'M', 'W', 'Pc', 'A']
+                },
+                '4-3-1-2': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
+                        { roles: ['C', 'M', 'C'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['T'], label: 'TQ', alternatives: {} },
+                        { roles: ['A', 'A'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'C', 'M', 'T', 'A']
+                },
+                '4-4-2': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
+                        { roles: ['C', 'C', 'E'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['E'], label: 'WING', alternatives: {} },
+                        { roles: ['A', 'Pc'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'C', 'E', 'A', 'Pc']
+                },
+                '4-1-4-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
+                        { roles: ['M'], label: 'CDM', alternatives: {} },
+                        { roles: ['C', 'T'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['E', 'W'], label: 'WING', alternatives: {} },
+                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'M', 'C', 'T', 'E', 'W', 'Pc']
+                },
+                '4-4-1-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
+                        { roles: ['M', 'C'], label: 'MID', alternatives: { 'C': ['C'] } },
+                        { roles: ['E', 'E'], label: 'WING', alternatives: {} },
+                        { roles: ['A'], label: 'TQ', alternatives: {} },
+                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'M', 'C', 'E', 'A', 'Pc']
+                },
+                '4-2-3-1': {
+                    rows: [
+                        { roles: ['Por'], label: 'GK', alternatives: {} },
+                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF', alternatives: {} },
+                        { roles: ['M', 'C'], label: 'CDM', alternatives: { 'C': ['C'] } },
+                        { roles: ['W', 'T', 'A'], label: 'TQ/W', alternatives: {} },
+                        { roles: ['Pc'], label: 'ATT', alternatives: {} }
+                    ],
+                    allRoles: ['Por', 'Dd', 'Dc', 'Ds', 'M', 'C', 'W', 'T', 'A', 'Pc']
+                }
             };
 
             // ----- CREATE TABLES IF NOT EXISTS -----
@@ -777,13 +972,11 @@
                 if (!state.supabaseAvailable || !supabaseClient) return false;
 
                 try {
-                    // Check if config table exists
                     const { error: configCheck } = await supabaseClient.from('config').select('*').limit(1);
 
                     if (configCheck && configCheck.code === '42P01') {
                         console.log('📦 Creating database tables...');
 
-                        // Create config table
                         await supabaseClient.rpc('exec_sql', {
                             sql: `
                                 CREATE TABLE IF NOT EXISTS config (
@@ -800,7 +993,6 @@
                             `
                         });
 
-                        // Create players table
                         await supabaseClient.rpc('exec_sql', {
                             sql: `
                                 CREATE TABLE IF NOT EXISTS players (
@@ -814,7 +1006,6 @@
                             `
                         });
 
-                        // Create teams table with budget column
                         await supabaseClient.rpc('exec_sql', {
                             sql: `
                                 CREATE TABLE IF NOT EXISTS teams (
@@ -825,7 +1016,6 @@
                             `
                         });
 
-                        // Create purchases table
                         await supabaseClient.rpc('exec_sql', {
                             sql: `
                                 CREATE TABLE IF NOT EXISTS purchases (
@@ -848,7 +1038,6 @@
                     return true;
                 } catch (error) {
                     console.warn('⚠️ Could not create tables:', error);
-                    console.warn('💡 Please run the SQL setup script manually in the Supabase SQL Editor.');
                     state.tablesExist = false;
                     return false;
                 }
@@ -874,7 +1063,6 @@
 
                 state.isLoading = true;
                 try {
-                    // 1. Config
                     const { data: config, error: configError } = await supabaseClient.from('config').select('*').single();
                     if (configError && configError.code !== 'PGRST116') {
                         console.warn('Config not found, using defaults');
@@ -892,7 +1080,6 @@
                         maxRoster.value = state.maxRoster;
                     }
 
-                    // 2. Players
                     const { data: dbPlayers, error: playersError } = await supabaseClient.from('players').select('*');
                     if (playersError) {
                         console.warn('Error loading players:', playersError);
@@ -908,7 +1095,6 @@
                         }));
                     }
 
-                    // 3. Teams with budget
                     const { data: dbTeams, error: teamsError } = await supabaseClient.from('teams').select('*');
                     if (teamsError) {
                         console.warn('Error loading teams:', teamsError);
@@ -917,10 +1103,8 @@
                         state.teams = dbTeams.map(t => ({ id: t.id, name: t.name, budget: t.budget || 500, players: [] }));
                     }
 
-                    // Update team dropdown
                     updateTeamDropdown();
 
-                    // 4. Purchases with player details
                     const { data: dbPurchases, error: purchasesError } = await supabaseClient.from('purchases')
                         .select('*, players(*)');
                     if (purchasesError) {
@@ -963,7 +1147,6 @@
 
             function updateTeamDropdown() {
                 const select = document.getElementById('teamSelect');
-                // Keep "La Mia Squadra" as first option with updated name
                 const myTeamLabel = state.teamName || 'La Mia Squadra';
                 select.innerHTML = `<option value="MINE">${myTeamLabel}</option>`;
                 state.teams.forEach(team => {
@@ -981,7 +1164,6 @@
                 }
 
                 try {
-                    // Update config
                     const { error: configError } = await supabaseClient.from('config').update({
                         budget: state.budget,
                         team_name: state.teamName,
@@ -996,7 +1178,6 @@
                         return;
                     }
 
-                    // Update each team's budget
                     for (const team of state.teams) {
                         const { error: teamError } = await supabaseClient.from('teams')
                             .update({ budget: team.budget })
@@ -1011,7 +1192,6 @@
 
                     alert('✅ Configurazione salvata con successo!');
                     updateSyncStatus(true, 'Saved');
-                    // Update dropdown with new team name
                     updateTeamDropdown();
                 } catch (err) {
                     console.error('Save config error:', err);
@@ -1069,118 +1249,6 @@
                 }
             }
 
-            // ----- OFFICIAL FORMATIONS -----
-            const FORMATIONS = {
-                '3-4-3': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
-                        { roles: ['E', 'M/C', 'C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
-                        { roles: ['W/A', 'A/PC', 'W/A'], label: 'ATT', alternatives: { 'W/A': ['W', 'A'], 'A/PC': ['A',
-                                    'PC'
-                                ] } }
-                    ]
-                },
-                '3-4-1-2': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
-                        { roles: ['E', 'M/C', 'C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
-                        { roles: ['T'], label: 'TQ', alternatives: {} },
-                        { roles: ['A/PC', 'A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
-                    ]
-                },
-                '3-4-2-1': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
-                        { roles: ['M', 'M/C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
-                        { roles: ['E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
-                        { roles: ['T', 'T/A'], label: 'TQ', alternatives: { 'T/A': ['T', 'A'] } },
-                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
-                    ]
-                },
-                '3-5-2': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
-                        { roles: ['M', 'M/C', 'C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
-                        { roles: ['E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
-                        { roles: ['A/PC', 'A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
-                    ]
-                },
-                '3-5-1-1': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
-                        { roles: ['M', 'M', 'C'], label: 'MID', alternatives: {} },
-                        { roles: ['E/W', 'E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
-                        { roles: ['T/A'], label: 'TQ', alternatives: { 'T/A': ['T', 'A'] } },
-                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
-                    ]
-                },
-                '4-3-3': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
-                        { roles: ['M/C', 'M', 'C'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
-                        { roles: ['W/A', 'A/PC', 'W/A'], label: 'ATT', alternatives: { 'W/A': ['W', 'A'], 'A/PC': [
-                                    'A', 'PC'
-                                ] } }
-                    ]
-                },
-                '4-3-1-2': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
-                        { roles: ['M/C', 'M', 'C'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
-                        { roles: ['T'], label: 'TQ', alternatives: {} },
-                        { roles: ['T/A/PC', 'A/PC'], label: 'ATT', alternatives: { 'T/A/PC': ['T', 'A', 'PC'],
-                                'A/PC': ['A', 'PC'] } }
-                    ]
-                },
-                '4-4-2': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
-                        { roles: ['M/C', 'C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
-                        { roles: ['E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
-                        { roles: ['A/PC', 'A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
-                    ]
-                },
-                '4-1-4-1': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
-                        { roles: ['M'], label: 'CDM', alternatives: {} },
-                        { roles: ['C/T', 'T'], label: 'MID', alternatives: { 'C/T': ['C', 'T'] } },
-                        { roles: ['E/W', 'W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
-                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
-                    ]
-                },
-                '4-4-1-1': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
-                        { roles: ['M', 'C'], label: 'MID', alternatives: {} },
-                        { roles: ['E/W', 'E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
-                        { roles: ['T/A'], label: 'TQ', alternatives: { 'T/A': ['T', 'A'] } },
-                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
-                    ]
-                },
-                '4-2-3-1': {
-                    rows: [
-                        { roles: ['P'], label: 'GK', alternatives: {} },
-                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
-                        { roles: ['M', 'M/C'], label: 'CDM', alternatives: { 'M/C': ['M', 'C'] } },
-                        { roles: ['W/T', 'T', 'W/A'], label: 'TQ/W', alternatives: { 'W/T': ['W', 'T'], 'W/A': [
-                                    'W', 'A'
-                                ] } },
-                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
-                    ]
-                }
-            };
-
             // DOM refs
             const $ = id => document.getElementById(id);
             const fileInput = $('fileInput');
@@ -1194,7 +1262,7 @@
             const clearSelBtn = $('clearSelectionBtn');
             const purchaseFeed = $('purchaseFeed');
             const feedCount = $('feedCount');
-            const pitchContainer = $('pitchContainer');
+            const pitchWrapper = $('pitchWrapper');
             const formationTabs = $('formationTabs');
             const formationLabel = $('formationLabel');
             const coverageLabel = $('coverageLabel');
@@ -1250,23 +1318,29 @@
 
             function playerMatchesRole(player, roleStr) {
                 if (!player || !player.roles) return false;
-                if (roleStr.includes('/')) {
-                    const alternatives = roleStr.split('/');
-                    return alternatives.some(alt => player.roles.includes(alt));
-                }
-                return player.roles.includes(roleStr);
+
+                // Case-insensitive matching
+                const roleLower = roleStr.toLowerCase();
+                return player.roles.some(r => r.toLowerCase() === roleLower);
+            }
+
+            function playerMatchesAnyRole(player, roleArray) {
+                if (!player || !player.roles) return false;
+                const roleLower = player.roles.map(r => r.toLowerCase());
+                return roleArray.some(r => roleLower.includes(r.toLowerCase()));
             }
 
             function getRoleIcon(role) {
-                const gkRoles = ['P', 'Por'];
-                const defRoles = ['DD', 'DS', 'DC', 'Dc', 'B'];
-                const midRoles = ['C', 'M', 'E', 'T', 'M/C', 'C/T', 'T/A', 'T/A/PC'];
-                const attRoles = ['W', 'A', 'PC', 'W/A', 'A/PC', 'E/W', 'W/T'];
+                const gkRoles = ['Por', 'P'];
+                const defRoles = ['Dd', 'Ds', 'Dc', 'B'];
+                const midRoles = ['C', 'M', 'E', 'T'];
+                const attRoles = ['W', 'A', 'Pc'];
 
-                if (gkRoles.some(r => role === r || role.includes(r))) return { icon: 'fa-shield-halved', cls: 'gk' };
-                if (defRoles.some(r => role === r || role.includes(r))) return { icon: 'fa-shield', cls: 'def' };
-                if (midRoles.some(r => role === r || role.includes(r))) return { icon: 'fa-futbol', cls: 'mid' };
-                if (attRoles.some(r => role === r || role.includes(r))) return { icon: 'fa-bullseye', cls: 'att' };
+                if (gkRoles.some(r => r.toLowerCase() === role.toLowerCase())) return { icon: 'fa-shield-halved',
+                cls: 'gk' };
+                if (defRoles.some(r => r.toLowerCase() === role.toLowerCase())) return { icon: 'fa-shield', cls: 'def' };
+                if (midRoles.some(r => r.toLowerCase() === role.toLowerCase())) return { icon: 'fa-futbol', cls: 'mid' };
+                if (attRoles.some(r => r.toLowerCase() === role.toLowerCase())) return { icon: 'fa-bullseye', cls: 'att' };
                 return { icon: 'fa-circle', cls: 'mid' };
             }
 
@@ -1315,14 +1389,14 @@
                 const formation = state.formation;
                 const formationData = FORMATIONS[formation];
                 if (!formationData) {
-                    pitchContainer.innerHTML = '<div class="empty-state">Formazione non trovata</div>';
+                    pitchWrapper.innerHTML = '<div class="empty-state">Formazione non trovata</div>';
                     return;
                 }
 
                 const boughtWithRoles = state.bought.filter(b => b.roles && b.roles.length > 0);
                 const totalSlots = formationData.rows.reduce((acc, row) => acc + row.roles.length, 0);
 
-                let html = `
+                let pitchHtml = `
                         <div class="pitch-goal pitch-goal-top"></div>
                         <div class="pitch-goal pitch-goal-bottom"></div>
                         <div class="pitch-center-circle"></div>
@@ -1330,7 +1404,7 @@
                     `;
 
                 formationData.rows.forEach((row, rowIndex) => {
-                    html += `<div class="pitch-row">`;
+                    pitchHtml += `<div class="pitch-row">`;
                     const roleCount = row.roles.length;
 
                     row.roles.forEach((roleStr) => {
@@ -1339,25 +1413,17 @@
                         const isCritical = rowIndex > 0 && !hasPlayer && usedSlots() / state.maxRoster > 0.6;
 
                         let roleCategory = '';
-                        if (['P'].includes(roleStr)) roleCategory = 'goalkeeper';
-                        else if (['DD', 'DS', 'DC', 'DC/B', 'B'].includes(roleStr) || roleStr.includes('/') &&
-                            roleStr.split('/').some(r => ['DD', 'DS', 'DC', 'B'].includes(r))) roleCategory =
-                            'defense';
-                        else if (['M', 'C', 'E', 'T', 'M/C', 'C/T', 'T/A', 'T/A/PC'].includes(roleStr) || roleStr
-                            .includes('/') && roleStr.split('/').some(r => ['M', 'C', 'E', 'T'].includes(r)))
-                            roleCategory = 'midfield';
-                        else if (['W', 'A', 'PC', 'W/A', 'A/PC', 'E/W', 'W/T'].includes(roleStr) || roleStr
-                            .includes('/') && roleStr.split('/').some(r => ['W', 'A', 'PC'].includes(r)))
-                            roleCategory = 'attack';
-
-                        let alternatives = roleStr.includes('/') ? roleStr.split('/').join(' / ') : '';
+                        if (['Por', 'P'].includes(roleStr)) roleCategory = 'goalkeeper';
+                        else if (['Dd', 'Ds', 'Dc', 'B'].includes(roleStr)) roleCategory = 'defense';
+                        else if (['C', 'M', 'E', 'T'].includes(roleStr)) roleCategory = 'midfield';
+                        else if (['W', 'A', 'Pc'].includes(roleStr)) roleCategory = 'attack';
 
                         let playersHtml = '';
                         if (playersForRole.length > 0) {
                             playersForRole.forEach(player => {
                                 const isMulti = player.roles.length > 1;
-                                const altRoles = player.roles.filter(r => !roleStr.split('/').includes(r)).join(
-                                    '+');
+                                const altRoles = player.roles.filter(r => r.toLowerCase() !== roleStr
+                                    .toLowerCase()).join('+');
                                 playersHtml += `
                                         <div class="player-card ${isMulti ? 'multi' : ''}">
                                             <span class="player-name">${player.name}</span>
@@ -1371,10 +1437,9 @@
                             playersHtml = `<div class="empty-slot">⬜ libero</div>`;
                         }
 
-                        html += `
+                        pitchHtml += `
                                 <div class="pitch-role-slot ${isCritical ? 'empty-critical' : ''}" style="flex: ${roleCount > 4 ? '0 0 18%' : '1'};">
                                     <span class="role-label ${roleCategory}">${roleStr}</span>
-                                    ${alternatives ? `<div class="role-alternatives">(${alternatives})</div>` : ''}
                                     ${playersForRole.length > 0 ? `<div class="player-count">${playersForRole.length}</div>` : ''}
                                     <div class="players-container">
                                         ${playersHtml}
@@ -1383,10 +1448,8 @@
                             `;
                     });
 
-                    html += `</div>`;
+                    pitchHtml += `</div>`;
                 });
-
-                pitchContainer.innerHTML = html;
 
                 const uniqueFilled = new Set();
                 formationData.rows.forEach(row => {
@@ -1396,6 +1459,36 @@
                     });
                 });
                 const pct = totalSlots ? Math.round((uniqueFilled.size / totalSlots) * 100) : 0;
+
+                // Find bench players (bought players not in formation)
+                const allFormationRoles = formationData.allRoles || [];
+                const benchPlayers = boughtWithRoles.filter(p => !playerMatchesAnyRole(p, allFormationRoles));
+
+                // Build bench HTML
+                let benchHtml = '';
+                if (benchPlayers.length > 0) {
+                    benchHtml = `
+                        <div class="bench">
+                            <div class="bench-title">🔄 Panchina (${benchPlayers.length})</div>
+                            ${benchPlayers.map(p => {
+                                const isMulti = p.roles.length > 1;
+                                return `
+                                    <div class="bench-player ${isMulti ? 'multi' : ''}">
+                                        <span class="b-name">${p.name}</span>
+                                        <span class="b-roles">${p.roles.join('/')}</span>
+                                        <span class="b-price">${p.price}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+
+                pitchWrapper.innerHTML = `
+                    <div class="pitch">${pitchHtml}</div>
+                    ${benchHtml}
+                `;
+
                 coverageLabel.textContent = `${pct}% coperto`;
                 formationLabel.textContent = formation;
             }
@@ -1404,7 +1497,6 @@
                 const boughtSet = allBoughtIds();
                 const available = state.players.filter(p => !boughtSet.has(p.id) && p.roles && p.roles.length > 0);
 
-                // Apply filter
                 const filter = state.scoutingFilter.toLowerCase().trim();
                 const filtered = filter ? available.filter(p =>
                     p.name.toLowerCase().includes(filter) ||
@@ -1420,11 +1512,10 @@
                     });
                 });
 
-                // Sort roles alphabetically but with GK first
                 const sortedRoles = Object.keys(roleMap).sort((a, b) => {
-                    const gkRoles = ['P', 'Por'];
-                    const aIsGK = gkRoles.some(r => a === r || a.includes(r));
-                    const bIsGK = gkRoles.some(r => b === r || b.includes(r));
+                    const gkRoles = ['Por', 'P'];
+                    const aIsGK = gkRoles.some(r => r.toLowerCase() === a.toLowerCase());
+                    const bIsGK = gkRoles.some(r => r.toLowerCase() === b.toLowerCase());
                     if (aIsGK && !bIsGK) return -1;
                     if (!aIsGK && bIsGK) return 1;
                     return a.localeCompare(b);
@@ -1433,7 +1524,6 @@
                 let html = '';
                 sortedRoles.forEach(role => {
                     const players = roleMap[role];
-                    // Sort by FVM descending
                     players.sort((a, b) => (b.fvm || b.baseQuote || 0) - (a.fvm || a.baseQuote || 0));
 
                     const roleInfo = getRoleIcon(role);
@@ -1469,13 +1559,11 @@
                 scoutingContainer.innerHTML = html || '<div class="empty-state">Nessun giocatore disponibile</div>';
                 scoutingCount.textContent = filtered.length + ' giocatori';
 
-                // Click handler for player cards
                 scoutingContainer.querySelectorAll('.scouting-player-card').forEach(el => {
                     el.addEventListener('click', function() {
                         const id = parseInt(this.dataset.id);
                         state.selectedPlayerId = id;
                         renderAll();
-                        // Switch to formation tab to see selection
                         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                         document.querySelector('[data-tab="formation"]').classList.add('active');
                         formationTab.classList.remove('hidden');
@@ -1525,7 +1613,6 @@
                 }
                 teamsContainer.innerHTML = html;
 
-                // Update team budget handlers
                 document.querySelectorAll('.update-team-budget').forEach(btn => {
                     btn.addEventListener('click', async function() {
                         const teamId = parseInt(this.dataset.teamId);
@@ -1540,7 +1627,6 @@
                         const team = state.teams.find(t => t.id === teamId);
                         if (!team) return;
 
-                        // Check if new budget is less than current spending
                         const totalSpent = team.players.reduce((sum, p) => sum + p.price, 0);
                         if (newBudget < totalSpent) {
                             alert(`Il budget non può essere inferiore alla spesa corrente (${totalSpent})`);
@@ -1784,10 +1870,8 @@
                 });
             });
 
-            // Save config button
             saveConfigBtn.addEventListener('click', saveConfigToDB);
 
-            // Scouting search
             scoutingSearch.addEventListener('input', function() {
                 state.scoutingFilter = this.value;
                 renderScouting();
@@ -1866,10 +1950,8 @@
                 }
             });
 
-            // When team name changes, update dropdown
             teamInput.addEventListener('input', function() {
                 state.teamName = this.value || 'La Mia Squadra';
-                // Update the dropdown option text
                 const myTeamOption = document.querySelector('#teamSelect option[value="MINE"]');
                 if (myTeamOption) {
                     myTeamOption.textContent = state.teamName;
@@ -1882,7 +1964,6 @@
             });
             teamInput.addEventListener('change', function() {
                 state.teamName = this.value || 'La Mia Squadra';
-                // Update the dropdown option text
                 const myTeamOption = document.querySelector('#teamSelect option[value="MINE"]');
                 if (myTeamOption) {
                     myTeamOption.textContent = state.teamName;
