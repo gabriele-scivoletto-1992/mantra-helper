@@ -496,11 +496,6 @@
                     <div class="flex justify-between items-center"><span class="font-semibold">📋 Acquisti</span><span id="feedCount" class="text-xs text-slate-400">0</span></div>
                     <div id="purchaseFeed" class="max-h-56 overflow-y-auto text-sm mt-2 space-y-1"></div>
                 </div>
-
-                <!-- Export button only -->
-                <div class="card p-4 flex justify-end">
-                    <button id="exportBtn" class="btn-outline text-sm"><i class="fas fa-file-export mr-1"></i> Export CSV</button>
-                </div>
             </div>
 
             <!-- RIGHT: formations + pitch + scouting -->
@@ -984,7 +979,6 @@
             const kpiSpent = $('kpiSpent');
             const kpiSlots = $('kpiSlots');
             const kpiMaxBid = $('kpiMaxBid');
-            const exportBtn = $('exportBtn');
             const budgetInput = $('budgetInput');
             const teamInput = $('teamInput');
             const minRoster = $('minRoster');
@@ -1555,29 +1549,6 @@
             addTeamBtn.addEventListener('click', addTeam);
             newTeamName.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') addTeam();
-            });
-
-            exportBtn.addEventListener('click', function() {
-                if (!state.bought.length && state.teams.every(t => t.players.length === 0)) {
-                    return alert('Nessun acquisto da esportare.');
-                }
-                let csv = 'Squadra,Nome,Prezzo,FVM,Percentuale,ID\n';
-                state.bought.forEach(b => {
-                    csv +=
-                        `${state.teamName},${b.name},${b.price},${b.fvm || b.baseQuote},${b.percentage || 0},${b.id}\n`;
-                });
-                state.teams.forEach(t => {
-                    t.players.forEach(p => {
-                        csv += `${t.name},${p.name},${p.price},${p.fvm || p.baseQuote},0,${p.id}\n`;
-                    });
-                });
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'roster_completo.csv';
-                a.click();
-                URL.revokeObjectURL(url);
             });
 
             // ----- REAL-TIME SUBSCRIPTION -----
