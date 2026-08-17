@@ -221,11 +221,12 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             border: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.2s;
             flex: 1;
             max-width: 110px;
+            overflow-y: auto;
         }
         .pitch-role-slot .role-label {
             font-size: 0.55rem;
@@ -234,6 +235,7 @@
             letter-spacing: 0.5px;
             margin-bottom: 4px;
             font-weight: 600;
+            flex-shrink: 0;
         }
         .pitch-role-slot .role-label.goalkeeper {
             color: #f472b6;
@@ -251,14 +253,21 @@
             border-color: #ef4444;
             background: rgba(239, 68, 68, 0.15);
         }
+        .pitch-role-slot .players-container {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            width: 100%;
+        }
         .pitch-role-slot .player-card {
             background: #2d3b4f;
-            border-radius: 8px;
-            padding: 4px 6px;
+            border-radius: 6px;
+            padding: 3px 5px;
             width: 100%;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             border-left: 3px solid #3b82f6;
             text-align: center;
+            flex-shrink: 0;
         }
         .pitch-role-slot .player-card.multi {
             background: #3d3a1a;
@@ -268,35 +277,42 @@
         .pitch-role-slot .empty-slot {
             font-size: 0.5rem;
             color: rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
         }
         .pitch-role-slot .player-card .player-name {
             font-weight: 500;
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .pitch-role-slot .player-card .player-team {
-            font-size: 0.5rem;
+            font-size: 0.45rem;
             color: #94a3b8;
         }
         .pitch-role-slot .player-card .player-price {
             color: #34d399;
             font-weight: 600;
-            font-size: 0.6rem;
+            font-size: 0.5rem;
         }
         .pitch-role-slot .player-card .multi-badge {
-            font-size: 0.45rem;
+            font-size: 0.4rem;
             background: #fbbf24;
             color: #0f172a;
-            padding: 0 4px;
-            border-radius: 4px;
-            margin-top: 2px;
+            padding: 0 3px;
+            border-radius: 3px;
+            margin-top: 1px;
         }
         .pitch-role-slot .role-alternatives {
-            font-size: 0.45rem;
+            font-size: 0.4rem;
             color: rgba(255, 255, 255, 0.3);
-            margin-top: 2px;
+            margin-top: 1px;
+            flex-shrink: 0;
+        }
+        .pitch-role-slot .player-count {
+            font-size: 0.45rem;
+            color: rgba(255, 255, 255, 0.25);
+            flex-shrink: 0;
         }
 
         @media (max-width: 768px) {
@@ -311,6 +327,7 @@
             }
             .pitch-role-slot .player-card {
                 font-size: 0.5rem;
+                padding: 2px 3px;
             }
             .pitch-role-slot .player-card .player-name {
                 font-size: 0.45rem;
@@ -687,19 +704,14 @@
                     const roleCount = row.roles.length;
 
                     row.roles.forEach((roleStr, roleIndex) => {
-                        // Find players that match this role (with alternatives)
+                        // Find ALL players that match this role (with alternatives)
                         const playersForRole = boughtWithRoles.filter(b => playerMatchesRole(b, roleStr));
-                        const hasPlayer = playersForRole.length > 0;
-                        const player = hasPlayer ? playersForRole[0] : null;
 
                         // Check if this slot is critical (mandatory and empty)
+                        const hasPlayer = playersForRole.length > 0;
                         const isCritical = rowIndex > 0 && !hasPlayer && usedSlots() / state.maxRoster > 0.6;
 
                         if (hasPlayer) filledSlots++;
-
-                        const isMulti = player && player.roles.length > 1;
-                        const altRoles = player ? player.roles.filter(r => !roleStr.split('/').includes(r)).join(
-                            '+') : '';
 
                         // Determine role category for styling
                         let roleCategory = '';
@@ -719,20 +731,34 @@
                             alternatives = roleStr.split('/').join(' / ');
                         }
 
-                        html += `
-                                <div class="pitch-role-slot ${isCritical ? 'empty-critical' : ''}" style="flex: ${roleCount > 4 ? '0 0 18%' : '1'};">
-                                    <span class="role-label ${roleCategory}">${roleStr}</span>
-                                    ${alternatives ? `<div class="role-alternatives">(${alternatives})</div>` : ''}
-                                    ${player ? `
+                        // Build players HTML
+                        let playersHtml = '';
+                        if (playersForRole.length > 0) {
+                            playersForRole.forEach(player => {
+                                const isMulti = player.roles.length > 1;
+                                const altRoles = player.roles.filter(r => !roleStr.split('/').includes(r)).join(
+                                    '+');
+                                playersHtml += `
                                         <div class="player-card ${isMulti ? 'multi' : ''}">
                                             <div class="player-name">${player.name}</div>
                                             <div class="player-team">${player.team}</div>
                                             <div class="player-price">${player.price}€</div>
                                             ${isMulti ? `<div class="multi-badge">+${altRoles}</div>` : ''}
                                         </div>
-                                    ` : `
-                                        <div class="empty-slot">⬜ libero</div>
-                                    `}
+                                    `;
+                            });
+                        } else {
+                            playersHtml = `<div class="empty-slot">⬜ libero</div>`;
+                        }
+
+                        html += `
+                                <div class="pitch-role-slot ${isCritical ? 'empty-critical' : ''}" style="flex: ${roleCount > 4 ? '0 0 18%' : '1'};">
+                                    <span class="role-label ${roleCategory}">${roleStr}</span>
+                                    ${alternatives ? `<div class="role-alternatives">(${alternatives})</div>` : ''}
+                                    ${playersForRole.length > 0 ? `<div class="player-count">${playersForRole.length} giocatori</div>` : ''}
+                                    <div class="players-container">
+                                        ${playersHtml}
+                                    </div>
                                 </div>
                             `;
                     });
@@ -742,8 +768,15 @@
 
                 pitchContainer.innerHTML = html;
 
-                // Update coverage
-                const pct = totalSlots ? Math.round((filledSlots / totalSlots) * 100) : 0;
+                // Update coverage - count unique players that fill at least one slot
+                const uniqueFilled = new Set();
+                formationData.rows.forEach(row => {
+                    row.roles.forEach(roleStr => {
+                        const playersForRole = boughtWithRoles.filter(b => playerMatchesRole(b, roleStr));
+                        playersForRole.forEach(p => uniqueFilled.add(p.id));
+                    });
+                });
+                const pct = totalSlots ? Math.round((uniqueFilled.size / totalSlots) * 100) : 0;
                 coverageLabel.textContent = `${pct}% coperto`;
                 formationLabel.textContent = formation;
             }
