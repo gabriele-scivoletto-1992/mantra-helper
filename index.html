@@ -33,9 +33,6 @@
             border-radius: 16px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
         }
-        .card-hover:hover {
-            background: #263348;
-        }
         .btn-emerald {
             background: #059669;
             color: white;
@@ -171,9 +168,20 @@
             min-height: 480px;
             position: relative;
         }
-        .pitch-line {
+        .pitch-goal {
             position: absolute;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+        .pitch-goal-top {
+            top: 10px;
+        }
+        .pitch-goal-bottom {
+            bottom: 10px;
         }
         .pitch-center-circle {
             position: absolute;
@@ -195,26 +203,11 @@
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
         }
-        .pitch-goal {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-        }
-        .pitch-goal-top {
-            top: 10px;
-        }
-        .pitch-goal-bottom {
-            bottom: 10px;
-        }
         .pitch-row {
             display: flex;
             justify-content: center;
-            gap: 16px;
-            margin: 12px 0;
+            gap: 12px;
+            margin: 8px 0;
             position: relative;
             z-index: 2;
         }
@@ -223,8 +216,8 @@
             backdrop-filter: blur(4px);
             border-radius: 10px;
             padding: 6px 8px;
-            min-width: 70px;
-            min-height: 70px;
+            min-width: 65px;
+            min-height: 65px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -232,7 +225,7 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.2s;
             flex: 1;
-            max-width: 120px;
+            max-width: 110px;
         }
         .pitch-role-slot .role-label {
             font-size: 0.55rem;
@@ -240,6 +233,19 @@
             color: rgba(255, 255, 255, 0.5);
             letter-spacing: 0.5px;
             margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .pitch-role-slot .role-label.goalkeeper {
+            color: #f472b6;
+        }
+        .pitch-role-slot .role-label.defense {
+            color: #60a5fa;
+        }
+        .pitch-role-slot .role-label.midfield {
+            color: #34d399;
+        }
+        .pitch-role-slot .role-label.attack {
+            color: #fbbf24;
         }
         .pitch-role-slot.empty-critical {
             border-color: #ef4444;
@@ -287,34 +293,27 @@
             border-radius: 4px;
             margin-top: 2px;
         }
-        .pitch-role-slot .role-label.defense {
-            color: #60a5fa;
-        }
-        .pitch-role-slot .role-label.midfield {
-            color: #34d399;
-        }
-        .pitch-role-slot .role-label.attack {
-            color: #fbbf24;
-        }
-        .pitch-role-slot .role-label.goalkeeper {
-            color: #f472b6;
+        .pitch-role-slot .role-alternatives {
+            font-size: 0.45rem;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 2px;
         }
 
         @media (max-width: 768px) {
             .pitch-row {
                 gap: 6px;
-                margin: 6px 0;
+                margin: 4px 0;
             }
             .pitch-role-slot {
-                min-width: 50px;
-                min-height: 55px;
+                min-width: 45px;
+                min-height: 50px;
                 padding: 4px;
             }
             .pitch-role-slot .player-card {
                 font-size: 0.5rem;
             }
             .pitch-role-slot .player-card .player-name {
-                font-size: 0.5rem;
+                font-size: 0.45rem;
             }
         }
     </style>
@@ -444,101 +443,114 @@
                 maxRoster: 30,
             };
 
-            // ----- OFFICIAL FORMATIONS (soccer layout) -----
+            // ----- OFFICIAL FORMATIONS (with slash alternatives) -----
             const FORMATIONS = {
                 '3-4-3': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
-                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
-                        { roles: ['W', 'Pc', 'A'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
+                        { roles: ['E', 'M/C', 'C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
+                        { roles: ['W/A', 'A/PC', 'W/A'], label: 'ATT', alternatives: { 'W/A': ['W', 'A'], 'A/PC': ['A',
+                                    'PC'
+                                ] } }
                     ]
                 },
                 '3-4-1-2': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
-                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
-                        { roles: ['T'], label: 'TQ' },
-                        { roles: ['A', 'A'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
+                        { roles: ['E', 'M/C', 'C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
+                        { roles: ['T'], label: 'TQ', alternatives: {} },
+                        { roles: ['A/PC', 'A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
                     ]
                 },
                 '3-4-2-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
-                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
-                        { roles: ['T', 'W'], label: 'TQ/W' },
-                        { roles: ['Pc'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
+                        { roles: ['M', 'M/C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
+                        { roles: ['E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
+                        { roles: ['T', 'T/A'], label: 'TQ', alternatives: { 'T/A': ['T', 'A'] } },
+                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
                     ]
                 },
                 '3-5-2': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
-                        { roles: ['C', 'M', 'C', 'M', 'C'], label: 'MID' },
-                        { roles: ['A', 'A'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
+                        { roles: ['M', 'M/C', 'C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
+                        { roles: ['E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
+                        { roles: ['A/PC', 'A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
                     ]
                 },
                 '3-5-1-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dc', 'Dc', 'Dc'], label: 'DEF' },
-                        { roles: ['C', 'M', 'C', 'M', 'C'], label: 'MID' },
-                        { roles: ['T'], label: 'TQ' },
-                        { roles: ['Pc'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DC', 'DC', 'DC/B'], label: 'DEF', alternatives: { 'DC/B': ['DC', 'B'] } },
+                        { roles: ['M', 'M', 'C'], label: 'MID', alternatives: {} },
+                        { roles: ['E/W', 'E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
+                        { roles: ['T/A'], label: 'TQ', alternatives: { 'T/A': ['T', 'A'] } },
+                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
                     ]
                 },
                 '4-3-3': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
-                        { roles: ['C', 'M', 'C'], label: 'MID' },
-                        { roles: ['W', 'Pc', 'A'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
+                        { roles: ['M/C', 'M', 'C'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
+                        { roles: ['W/A', 'A/PC', 'W/A'], label: 'ATT', alternatives: { 'W/A': ['W', 'A'], 'A/PC': [
+                                    'A', 'PC'
+                                ] } }
                     ]
                 },
                 '4-3-1-2': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
-                        { roles: ['C', 'M', 'C'], label: 'MID' },
-                        { roles: ['T'], label: 'TQ' },
-                        { roles: ['A', 'A'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
+                        { roles: ['M/C', 'M', 'C'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
+                        { roles: ['T'], label: 'TQ', alternatives: {} },
+                        { roles: ['T/A/PC', 'A/PC'], label: 'ATT', alternatives: { 'T/A/PC': ['T', 'A', 'PC'],
+                                'A/PC': ['A', 'PC'] } }
                     ]
                 },
                 '4-4-2': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
-                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
-                        { roles: ['A', 'Pc'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
+                        { roles: ['M/C', 'C', 'E'], label: 'MID', alternatives: { 'M/C': ['M', 'C'] } },
+                        { roles: ['E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
+                        { roles: ['A/PC', 'A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
                     ]
                 },
                 '4-1-4-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
-                        { roles: ['M'], label: 'CDM' },
-                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
-                        { roles: ['Pc'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
+                        { roles: ['M'], label: 'CDM', alternatives: {} },
+                        { roles: ['C/T', 'T'], label: 'MID', alternatives: { 'C/T': ['C', 'T'] } },
+                        { roles: ['E/W', 'W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
+                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
                     ]
                 },
                 '4-4-1-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
-                        { roles: ['C', 'C', 'C', 'C'], label: 'MID' },
-                        { roles: ['T'], label: 'TQ' },
-                        { roles: ['Pc'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
+                        { roles: ['M', 'C'], label: 'MID', alternatives: {} },
+                        { roles: ['E/W', 'E/W'], label: 'WING', alternatives: { 'E/W': ['E', 'W'] } },
+                        { roles: ['T/A'], label: 'TQ', alternatives: { 'T/A': ['T', 'A'] } },
+                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
                     ]
                 },
                 '4-2-3-1': {
                     rows: [
-                        { roles: ['Por'], label: 'GK' },
-                        { roles: ['Dd', 'Dc', 'Dc', 'Ds'], label: 'DEF' },
-                        { roles: ['C', 'M'], label: 'CDM' },
-                        { roles: ['T', 'W', 'A'], label: 'TQ/W' },
-                        { roles: ['Pc'], label: 'ATT' }
+                        { roles: ['P'], label: 'GK', alternatives: {} },
+                        { roles: ['DD', 'DC', 'DC', 'DS'], label: 'DEF', alternatives: {} },
+                        { roles: ['M', 'M/C'], label: 'CDM', alternatives: { 'M/C': ['M', 'C'] } },
+                        { roles: ['W/T', 'T', 'W/A'], label: 'TQ/W', alternatives: { 'W/T': ['W', 'T'], 'W/A': [
+                                    'W', 'A'
+                                ] } },
+                        { roles: ['A/PC'], label: 'ATT', alternatives: { 'A/PC': ['A', 'PC'] } }
                     ]
                 }
             };
@@ -599,6 +611,17 @@
                 const maxSlots = state.maxRoster;
                 const leftSlots = Math.max(0, maxSlots - slots - 1);
                 return Math.max(0, remain - leftSlots);
+            }
+
+            // Check if a player matches a role with alternatives
+            function playerMatchesRole(player, roleStr) {
+                if (!player || !player.roles) return false;
+                // Check if roleStr contains alternatives (e.g., "M/C")
+                if (roleStr.includes('/')) {
+                    const alternatives = roleStr.split('/');
+                    return alternatives.some(alt => player.roles.includes(alt));
+                }
+                return player.roles.includes(roleStr);
             }
 
             // ----- RENDER FUNCTIONS -----
@@ -663,9 +686,9 @@
                     html += `<div class="pitch-row">`;
                     const roleCount = row.roles.length;
 
-                    row.roles.forEach((role, roleIndex) => {
-                        // Find players that match this role
-                        const playersForRole = boughtWithRoles.filter(b => b.roles.includes(role));
+                    row.roles.forEach((roleStr, roleIndex) => {
+                        // Find players that match this role (with alternatives)
+                        const playersForRole = boughtWithRoles.filter(b => playerMatchesRole(b, roleStr));
                         const hasPlayer = playersForRole.length > 0;
                         const player = hasPlayer ? playersForRole[0] : null;
 
@@ -675,18 +698,31 @@
                         if (hasPlayer) filledSlots++;
 
                         const isMulti = player && player.roles.length > 1;
-                        const altRoles = player ? player.roles.filter(r => r !== role).join('+') : '';
+                        const altRoles = player ? player.roles.filter(r => !roleStr.split('/').includes(r)).join(
+                            '+') : '';
 
                         // Determine role category for styling
                         let roleCategory = '';
-                        if (['Por'].includes(role)) roleCategory = 'goalkeeper';
-                        else if (['Dd', 'Ds', 'Dc'].includes(role)) roleCategory = 'defense';
-                        else if (['C', 'M', 'T'].includes(role)) roleCategory = 'midfield';
-                        else if (['W', 'A', 'Pc'].includes(role)) roleCategory = 'attack';
+                        if (['P'].includes(roleStr)) roleCategory = 'goalkeeper';
+                        else if (['DD', 'DS', 'DC', 'DC/B', 'B'].includes(roleStr) || roleStr.includes('/') && roleStr
+                            .split('/').some(r => ['DD', 'DS', 'DC', 'B'].includes(r))) roleCategory = 'defense';
+                        else if (['M', 'C', 'E', 'T', 'M/C', 'C/T', 'T/A', 'T/A/PC'].includes(roleStr) || roleStr.includes(
+                                '/') && roleStr.split('/').some(r => ['M', 'C', 'E', 'T'].includes(r)))
+                            roleCategory = 'midfield';
+                        else if (['W', 'A', 'PC', 'W/A', 'A/PC', 'E/W', 'W/T'].includes(roleStr) || roleStr.includes(
+                                '/') && roleStr.split('/').some(r => ['W', 'A', 'PC'].includes(r)))
+                            roleCategory = 'attack';
+
+                        // Get alternatives for display
+                        let alternatives = '';
+                        if (roleStr.includes('/')) {
+                            alternatives = roleStr.split('/').join(' / ');
+                        }
 
                         html += `
                                 <div class="pitch-role-slot ${isCritical ? 'empty-critical' : ''}" style="flex: ${roleCount > 4 ? '0 0 18%' : '1'};">
-                                    <span class="role-label ${roleCategory}">${role}</span>
+                                    <span class="role-label ${roleCategory}">${roleStr}</span>
+                                    ${alternatives ? `<div class="role-alternatives">(${alternatives})</div>` : ''}
                                     ${player ? `
                                         <div class="player-card ${isMulti ? 'multi' : ''}">
                                             <div class="player-name">${player.name}</div>
