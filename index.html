@@ -425,11 +425,9 @@
                     <div id="purchaseFeed" class="max-h-56 overflow-y-auto text-sm mt-2 space-y-1"></div>
                 </div>
 
-                <!-- Flexibility matrix + panic button -->
-                <div class="card p-4 flex flex-wrap items-center gap-2 justify-between">
-                    <span class="text-xs font-medium"><i class="fas fa-puzzle-piece text-amber-400 mr-1"></i> Jolly: <span id="jollyCount">0</span></span>
-                    <button id="panicBtn" class="btn-outline text-xs"><i class="fas fa-life-ring"></i> Free agent</button>
-                    <button id="exportBtn" class="btn-outline text-xs"><i class="fas fa-file-export"></i> Export</button>
+                <!-- Export button only -->
+                <div class="card p-4 flex justify-end">
+                    <button id="exportBtn" class="btn-outline text-sm"><i class="fas fa-file-export mr-1"></i> Export CSV</button>
                 </div>
             </div>
 
@@ -623,8 +621,6 @@
             const kpiSpent = $('kpiSpent');
             const kpiSlots = $('kpiSlots');
             const kpiMaxBid = $('kpiMaxBid');
-            const jollyCount = $('jollyCount');
-            const panicBtn = $('panicBtn');
             const exportBtn = $('exportBtn');
             const budgetInput = $('budgetInput');
             const teamInput = $('teamInput');
@@ -664,7 +660,6 @@
             // Check if a player matches a role with alternatives
             function playerMatchesRole(player, roleStr) {
                 if (!player || !player.roles) return false;
-                // Check if roleStr contains alternatives (e.g., "M/C")
                 if (roleStr.includes('/')) {
                     const alternatives = roleStr.split('/');
                     return alternatives.some(alt => player.roles.includes(alt));
@@ -683,8 +678,6 @@
                 kpiSpent.textContent = pct + '%';
                 kpiSlots.textContent = `${used}/${maxSlots}`;
                 kpiMaxBid.textContent = maxBid();
-                const jolly = state.bought.filter(b => b.roles && b.roles.length > 1).length;
-                jollyCount.textContent = jolly;
                 confirmBtn.disabled = !state.selectedPlayerId || !priceInput.value || Number(priceInput.value) > maxBid() ||
                     Number(priceInput.value) <= 0;
             }
@@ -692,7 +685,7 @@
             function renderFeed() {
                 purchaseFeed.innerHTML = state.bought.map((b, idx) => `
                         <div class="feed-item flex justify-between items-center">
-                            <span><strong>${b.name}</strong> (${b.team}) <span class="text-emerald-300">${b.price}€</span> <span class="text-xs text-slate-400">${b.roles.join('/')}</span></span>
+                            <span><strong>${b.name}</strong> (${b.team}) <span class="text-emerald-300">${b.price}</span> <span class="text-xs text-slate-400">${b.roles.join('/')}</span></span>
                             <span class="undo" data-idx="${idx}"><i class="fas fa-undo-alt"></i></span>
                         </div>
                     `).join('');
@@ -722,7 +715,6 @@
 
                 let html = '';
 
-                // Add pitch background elements
                 html += `
                         <div class="pitch-goal pitch-goal-top"></div>
                         <div class="pitch-goal pitch-goal-bottom"></div>
@@ -735,16 +727,12 @@
                     const roleCount = row.roles.length;
 
                     row.roles.forEach((roleStr, roleIndex) => {
-                        // Find ALL players that match this role (with alternatives)
                         const playersForRole = boughtWithRoles.filter(b => playerMatchesRole(b, roleStr));
-
-                        // Check if this slot is critical (mandatory and empty)
                         const hasPlayer = playersForRole.length > 0;
                         const isCritical = rowIndex > 0 && !hasPlayer && usedSlots() / state.maxRoster > 0.6;
 
                         if (hasPlayer) filledSlots++;
 
-                        // Determine role category for styling
                         let roleCategory = '';
                         if (['P'].includes(roleStr)) roleCategory = 'goalkeeper';
                         else if (['DD', 'DS', 'DC', 'DC/B', 'B'].includes(roleStr) || roleStr.includes('/') && roleStr
@@ -756,13 +744,11 @@
                                 '/') && roleStr.split('/').some(r => ['W', 'A', 'PC'].includes(r)))
                             roleCategory = 'attack';
 
-                        // Get alternatives for display
                         let alternatives = '';
                         if (roleStr.includes('/')) {
                             alternatives = roleStr.split('/').join(' / ');
                         }
 
-                        // Build players HTML - simplified one-line cards
                         let playersHtml = '';
                         if (playersForRole.length > 0) {
                             playersForRole.forEach(player => {
@@ -773,7 +759,7 @@
                                         <div class="player-card ${isMulti ? 'multi' : ''}">
                                             <span class="player-name">${player.name}</span>
                                             <span class="player-team">${player.team}</span>
-                                            <span class="player-price">${player.price}€</span>
+                                            <span class="player-price">${player.price}</span>
                                             ${isMulti ? `<span class="multi-badge">+${altRoles}</span>` : ''}
                                         </div>
                                     `;
@@ -799,7 +785,6 @@
 
                 pitchContainer.innerHTML = html;
 
-                // Update coverage - count unique players that fill at least one slot
                 const uniqueFilled = new Set();
                 formationData.rows.forEach(row => {
                     row.roles.forEach(roleStr => {
@@ -1059,18 +1044,6 @@
                 state.maxRoster = Number(this.value) || 30;
                 if (state.maxRoster < state.minRoster) state.minRoster = state.maxRoster;
                 renderAll();
-            });
-
-            // Panic
-            panicBtn.addEventListener('click', function() {
-                const boughtSet = boughtIds();
-                const free = state.players.filter(p => !boughtSet.has(p.id));
-                if (!free.length) { alert('Nessun free agent disponibile.'); return; }
-                const sorted = [...free].sort((a, b) => (b.fvm || b.baseQuote) - (a.fvm || a.baseQuote));
-                const msg = sorted.slice(0, 25).map(p =>
-                    `${p.name} (${p.team}) [${p.roles.join('/')}] FVM ${p.fvm || p.baseQuote}`
-                ).join('\n');
-                alert('Free agent (top 25 per FVM):\n' + msg);
             });
 
             // Export
